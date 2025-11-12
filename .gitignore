@@ -6,6 +6,9 @@ results.json
 confirmed_brands.txt
 candidate_brands_cleaned.txt
 
+__pycache__/
+.idea/
+
 # 忽略Python的缓存文件
 __pycache__/
 *.pyc
