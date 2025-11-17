@@ -10,9 +10,6 @@ from typing import List, Dict, Any
 # export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 
 # 要调用的具备联网功能的模型 (在OpenRouter上查找 )
-# 例如: 'google/gemini-pro' 是一个不错的选择，因为它默认就有很好的联网能力。
-# 你也可以选择其他支持工具调用或联网功能的模型。
-# MODEL_NAME = "google/gemini-2.5-flash"
 MODEL_NAME = "openai/chatgpt-4o-latest"
 
 # 输入的问题文件

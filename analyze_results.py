@@ -10,8 +10,9 @@ import time
 
 
 # ==============================================================================
-# 最终分析引擎 (v8.0 - 绝对权重版)
+# 最终分析引擎
 # 描述: 严格按照权重计算分数，确保总分在0-100的理论区间内。
+# python analyze_results.py --config config_smart_hardware.yaml
 # ==============================================================================
 
 # --- 全局函数 ---
@@ -159,7 +160,7 @@ def run_analysis(config: dict):
     BRAND_DICTIONARY = config['brand_dictionary']
     CHINESE_BRANDS_WHITELIST = set(config['chinese_brands_whitelist'])
     WEIGHTS = config['weights']
-    print(f"--- 开始分析任务: {config['task_name']} (v8.0 绝对权重版) ---")
+    print(f"--- 开始分析任务: {config['task_name']} ---")
     try:
         with open(RESULTS_FILE, 'r', encoding='utf-8') as f:
             all_data = json.load(f)
@@ -187,7 +188,7 @@ def run_analysis(config: dict):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="最终分析引擎 (v8.0 - 绝对权重版)。")
+    parser = argparse.ArgumentParser(description="最终分析引擎。")
     parser.add_argument("-c", "--config", default="config.yaml",
                         help="指定要使用的YAML配置文件路径 (默认为: config.yaml)")
     args = parser.parse_args()

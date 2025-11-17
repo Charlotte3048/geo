@@ -2,145 +2,160 @@ import openai
 import json
 import os
 import re
+import argparse
 from collections import Counter
 import time
 
 # ==============================================================================
-# 纯净智能品牌探索脚本 (v3.0 - Pure LLM)
-# 描述: 从零开始，仅依赖大语言模型从 results.json 中智能提取候选品牌。
-# 确保在运行脚本前设置了以下环境变量，在当前目录的终端中执行：:
-# export OPENAI_API_KEY="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"
-# export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+# 最终品牌探索引擎 (v4.0 - 按任务隔离版)
+# 描述: 可根据任务名称，筛选性地分析数据，并生成隔离的、带配置模板的输出。
+# ==============================================================================
+# 示例用法:
+# python explore_brands.py --task smart_hardware --category_prefix "智能硬件-"
 # ==============================================================================
 
-# --- 1. 配置 ---
-RESULTS_FILE = "results.json"
-OUTPUT_FILE = "candidate_brands_pure_llm.txt"
-
-# 用于智能提取的模型 (推荐使用能力强、性价比高的模型)
-# google/gemini-pro 是一个非常好的选择
-EXTRACTION_MODEL = "google/gemini-2.5-flash"
-
-# 将文本分块的大小 (字符数)
-CHUNK_SIZE = 2000
+# --- 配置 ---
+# 这些现在是默认值，可以通过命令行参数覆盖
+DEFAULT_RESULTS_FILE = "results.json"
+DEFAULT_MODEL = "google/gemini-2.5-flash"  # 默认使用高性价比模型
 
 
-# --- 2. 智能品牌发现 (LLM-Powered) ---
-def get_brands_from_chunk_with_ai(client: openai.OpenAI, text_chunk: str) -> list:
-    """
-    使用强大的AI模型从一小块文本中提取品牌名称。
-    """
+# --- 核心函数 ---
+def get_brands_from_text_with_ai(client: openai.OpenAI, text: str, model: str) -> list:
+    """使用指定的AI模型从文本中提取品牌名称"""
     system_prompt = """
-    你是一个高度精准的品牌名称识别引擎。你的唯一任务是从给定的文本中，抽取出所有明确的、代表公司或产品的【品牌名称】。
-
-    **严格遵守以下规则:**
-    1.  **只返回品牌名**: 例如 "Roborock", "TCL", "美的", "Anker"。
-    2.  **坚决过滤非品牌词**:
-        *   **技术术语**: 忽略 "Mini LED", "QLED", "Android"。
-        *   **地理位置**: 忽略 "北美", "欧洲", "China"。
-        *   **通用名词**: 忽略 "电视", "技术", "系列", "公司", "性价比"。
-        *   **网站与媒体**: 忽略 "Amazon", "Rtings.com", "The Verge"。
-    3.  **合并常见别名**: 如果发现 "石头科技" 和 "Roborock" 同时出现，请尽量只返回 "Roborock"。如果发现 "小米" 和 "Mijia"，请尽量只返回 "Xiaomi"。
-    4.  **输出格式**: 必须以一个JSON数组的格式返回你发现的品牌名，例如: ["Roborock", "Ecovacs", "Midea"]。如果未发现任何品牌，则返回空数组 []。
+    You are a professional market analyst. Your task is to extract all clear brand names representing companies or products from the given text.
+    Rules:
+    1. Return only brand names, e.g., "Roborock", "TCL", "美的".
+    2. Ignore technical terms (e.g., "Mini LED"), geographical locations (e.g., "North America"), generic nouns (e.g., "TV", "technology"), and website names (e.g., "Amazon").
+    3. If a brand has multiple names (e.g., "石头科技" and "Roborock"), extract them all.
+    4. Return as a JSON array, e.g., ["Roborock", "Ecovacs", "美的"]. Return an empty array [] if no brands are found.
     """
     try:
         response = client.chat.completions.create(
-            model=EXTRACTION_MODEL,
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text_chunk}
+                {"role": "user", "content": text}
             ],
             temperature=0.0,
             response_format={"type": "json_object"},
         )
         content = json.loads(response.choices[0].message.content)
-
         if isinstance(content, dict):
             return content.get("brands", [])
         elif isinstance(content, list):
             return content
         return []
     except Exception as e:
-        # 在处理单个块时出错，打印错误但继续
-        print(f"    - 智能提取块时发生错误: {e}")
+        print(f"  - AI extraction error: {e}")
         return []
 
 
-# --- 3. 主执行函数 ---
+def generate_config_template(config_file_path: str, task_name: str, brand_counts: Counter):
+    """根据品牌列表，生成一个带注释的YAML配置文件模板"""
+    with open(config_file_path, 'w', encoding='utf-8') as f:
+        f.write(f"# {task_name.replace('_', ' ').title()} 品类分析配置文件\n")
+        f.write("# ========================================================\n")
+        f.write("# 自动生成于: {}\n".format(time.strftime('%Y-%m-%d %H:%M:%S')))
+        f.write("# 请仔细审核和完善此文件，特别是 brand_dictionary 和 chinese_brands_whitelist。\n\n")
+
+        f.write(f"task_name: {task_name}\n")
+        f.write(f"results_file: {DEFAULT_RESULTS_FILE}\n")
+        f.write(f"ranking_output_file: ranking_report_{task_name}.md\n")
+        f.write(f"report_title: '# 中国出海品牌GenAI心智占有率 -- {task_name.replace('_', ' ').title()}类'\n\n")
+
+        f.write("weights:\n")
+        f.write("  visibility: 20\n")
+        f.write("  mention_rate: 20\n")
+        f.write("  ai_ranking: 20\n")
+        f.write("  ref_depth: 15\n")
+        f.write("  mind_share: 15\n")
+        f.write("  competitiveness: 10\n\n")
+
+        f.write("# 步骤一: 完善品牌词典 (包含所有中外品牌及其别名)\n")
+        f.write("brand_dictionary:\n")
+        for brand, count in brand_counts.most_common():
+            # 为高频词自动生成一个基础模板
+            if count > 1:
+                f.write(f"  {brand.capitalize().replace(' ', '')}: [{brand.lower()}] # ({count}次)\n")
+        f.write("\n  # --- 请在此处手动添加或合并别名 ---\n")
+        f.write("  # Example: Anker: [anker, anker innovations, 安克]\n\n")
+
+        f.write("# 步骤二: 定义中国品牌白名单 (仅使用标准键名)\n")
+        f.write("chinese_brands_whitelist:\n")
+        for brand, count in brand_counts.most_common():
+            if count > 1:
+                f.write(f"  - {brand.capitalize().replace(' ', '')}\n")
+        f.write("\n  # --- 请在此处审核，只保留中国品牌 ---\n")
+
+    print(f"\n✅ 配置文件模板已生成: '{config_file_path}'")
+    print("下一步关键操作：请打开并编辑此YAML文件，完成品牌词典和白名单的最终确认！")
+
+
 def main():
-    """主执行函数"""
-    # --- 加载原始数据 ---
-    print(f"正在从 '{RESULTS_FILE}' 文件中加载数据...")
+    # --- 1. 命令行参数解析 ---
+    parser = argparse.ArgumentParser(description="最终品牌探索引擎 (v4.0 - 按任务隔离版)。")
+    parser.add_argument("--task", required=True, help="定义本次分析任务的唯一名称 (例如: smart_hardware)。")
+    parser.add_argument("--category_prefix", required=True, help="用于筛选数据的分类名前缀 (例如: '智能硬件-')。")
+    parser.add_argument("--results_file", default=DEFAULT_RESULTS_FILE, help="包含所有原始数据的JSON文件。")
+    parser.add_argument("--model", default=DEFAULT_MODEL, help="用于品牌提取的LLM模型ID。")
+    args = parser.parse_args()
+
+    # --- 2. 设置API客户端 ---
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("错误: 请先设置环境变量 'OPENROUTER_API_KEY'。")
+        return
+    client = openai.OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+
+    # --- 3. 加载并筛选数据 ---
+    print(f"--- 开始探索任务: {args.task} ---")
+    print(f"正在从 '{args.results_file}' 加载数据，并筛选分类前缀为 '{args.category_prefix}' 的条目...")
     try:
-        with open(RESULTS_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        all_answers = [item['response']['answer'] for item in data if
-                       'response' in item and 'answer' in item['response']]
-        print(f"已加载 {len(all_answers)} 条AI回答。")
-    except Exception as e:
-        print(f"错误: 处理 '{RESULTS_FILE}' 文件时出错: {e}")
+        with open(args.results_file, 'r', encoding='utf-8') as f:
+            all_data = json.load(f)
+    except FileNotFoundError:
+        print(f"错误: 数据文件 '{args.results_file}' 未找到。")
         return
 
-    # --- 创建OpenAI客户端 ---
-    try:
-        client = openai.OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-        )
-        print(f"使用模型 '{EXTRACTION_MODEL}' 进行品牌提取。")
-    except TypeError:
-        print("错误: 请确保已设置 OPENROUTER_API_KEY 环境变量。")
+    filtered_data = [item for item in all_data if item.get('category', '').startswith(args.category_prefix)]
+
+    if not filtered_data:
+        print(f"警告: 未找到任何分类以 '{args.category_prefix}' 开头的条目。请检查前缀是否正确。")
         return
 
-    # --- 开始智能提取 ---
-    all_discovered_brands = []
-    print("\n--- 正在使用大语言模型智能提取品牌 ---")
+    all_answers = [item['response']['answer'] for item in filtered_data if
+                   'response' in item and 'answer' in item['response']]
+    print(f"筛选完成！共找到 {len(all_answers)} 条相关回答进行分析。")
 
+    # --- 4. 智能品牌提取 ---
+    print(f"\n--- 开始智能品牌提取 (使用模型: {args.model}) ---")
+    all_extracted_brands = []
     for i, answer in enumerate(all_answers):
         print(f"正在处理回答 {i + 1}/{len(all_answers)}...")
-        if not answer.strip():
-            continue
+        brands = get_brands_from_text_with_ai(client, answer, args.model)
+        if brands:
+            all_extracted_brands.extend(brands)
+        time.sleep(0.5)  # 轻微延迟以示友好
 
-        # 将长回答分块处理
-        for j in range(0, len(answer), CHUNK_SIZE):
-            chunk = answer[j:j + CHUNK_SIZE]
-            print(f"  - 正在处理块 {j // CHUNK_SIZE + 1}...")
+    brand_counts = Counter(all_extracted_brands)
+    print(f"\n提取完成！共发现 {len(brand_counts)} 个独特的候选品牌。")
 
-            new_brands = get_brands_from_chunk_with_ai(client, chunk)
+    # --- 5. 生成隔离的输出文件 ---
+    candidate_file = f"candidate_brands_{args.task}.txt"
+    config_template_file = f"config_{args.task}.yaml"
 
-            if new_brands:
-                print(f"    + 发现候选: {new_brands}")
-                all_discovered_brands.extend(new_brands)
-
-            time.sleep(1)  # 礼貌地等待，避免速率超限
-
-    # --- 汇总与统计 ---
-    print("\n--- 正在汇总、清洗和统计 ---")
-
-    # 对所有发现的品牌进行最终的频率统计
-    final_brand_counts = Counter()
-    for brand in all_discovered_brands:
-        cleaned_brand = brand.strip()
-        # 进行一次非常基础的最终清洗
-        if len(cleaned_brand) > 1 and not cleaned_brand.isdigit():
-            final_brand_counts[cleaned_brand] += 1
-
-    print(f"分析完成！共发现 {len(final_brand_counts)} 个独特的候选品牌。")
-
-    # --- 保存结果 ---
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        f.write("# 纯净智能品牌探索报告 (v3.0 - Pure LLM)\n")
+    # 生成候选品牌文本文件
+    with open(candidate_file, 'w', encoding='utf-8') as f:
+        f.write(f"# {args.task.replace('_', ' ').title()} 品类候选品牌列表 (v4.0)\n")
         f.write("# ----------------------------------------\n")
-        f.write("# 请审核此列表，以创建或完善您的 config.yaml 文件。\n\n")
+        for brand, count in brand_counts.most_common():
+            f.write(f"{brand} ({count})\n")
+    print(f"✅ 候选品牌列表已保存到: '{candidate_file}'")
 
-        if not final_brand_counts:
-            f.write("未发现有效的候选品牌。")
-        else:
-            for brand, count in final_brand_counts.most_common():
-                f.write(f"{brand} ({count})\n")
-
-    print(f"结果已成功保存到 '{OUTPUT_FILE}' 文件中。")
-    print("\n下一步：请手动审核该文件，以创建您的品牌词典和白名单。")
+    # 生成配置文件模板
+    generate_config_template(config_template_file, args.task, brand_counts)
 
 
 if __name__ == "__main__":
