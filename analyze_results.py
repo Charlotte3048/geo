@@ -1,3 +1,5 @@
+import math
+
 import openai
 import json
 import os
@@ -192,57 +194,81 @@ CHINESE_BRANDS_WHITELIST = {
 }
 
 # 计分权重
-WEIGHTS = {
-    "mention": 1.0,  # 基础提及分
-    "rank": 5.0,  # 顺位排名附加分
-    "strength": 3.0  # 推荐强度附加分
+WEIGHTS_V3 = {
+    "visibility": 20,  # 品牌可见度
+    "mention_rate": 20,  # 引用率 (提及次数)
+    "ai_ranking": 20,  # 品牌AI认知排行榜指数 (推荐强度)
+    "ref_depth": 15,  # 正文引用率 (引用深度)
+    "mind_share": 15,  # 品牌AI认知份额
+    "competitiveness": 10,  # 竞争力指数
 }
 
 
-def calculate_scores(answer: str, brand_map: dict) -> dict:
-    """为单篇回答中出现的品牌计分"""
-    scores = defaultdict(float)
-    answer_lower = answer.lower()
+def normalize_score(value, max_value, min_value=0, scale=100):
+    """将一个值标准化到指定的范围 (e.g., 0-100)"""
+    if max_value == min_value:
+        return scale if value > 0 else 0
+    # 使用对数缩放，让头部差异更明显，尾部差异不那么刺眼
+    log_value = math.log1p(value)
+    log_max = math.log1p(max_value)
+    return (log_value / log_max) * scale if log_max > 0 else 0
 
-    # 1. 提及分
-    mentioned_brands = set()
+
+def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
+    """分析单个AI回答，提取所有品牌的原始指标"""
+    raw_metrics = defaultdict(lambda: {
+        "mentioned": 0,
+        "first_pos": float('inf'),
+        "is_strong": 0,
+        "ref_count": 0,
+        "mention_count": 0,
+    })
+    answer_lower = answer_text.lower()
+
+    # 1. 提取基础指标
     for std_brand, aliases in brand_map.items():
         for alias in aliases:
-            if alias.lower() in answer_lower:
-                scores[std_brand] += WEIGHTS["mention"]
-                mentioned_brands.add(std_brand)
-                break  # 一个品牌只加一次基础分
+            alias_lower = alias.lower()
+            if alias_lower in answer_lower:
+                raw_metrics[std_brand]["mentioned"] = 1
+                raw_metrics[std_brand]["mention_count"] += answer_lower.count(alias_lower)
+                try:
+                    pos = answer_lower.index(alias_lower)
+                    if pos < raw_metrics[std_brand]["first_pos"]:
+                        raw_metrics[std_brand]["first_pos"] = pos
+                except ValueError:
+                    pass
 
-    # 2. 顺位排名分和强度分
-    # 简化处理：我们检查句子中的排名和推荐词
-    sentences = re.split(r'[。\n]', answer)
-    rank_order = 1
+    # 2. 提取推荐强度
+    sentences = re.split(r'[。\n]', answer_text)
     for sentence in sentences:
         sentence_lower = sentence.lower()
-        for brand in mentioned_brands:
-            if brand.lower() in sentence_lower:
-                # 强度分
-                if any(word in sentence_lower for word in ["首选", "最佳", "强烈推荐", "best", "top pick"]):
-                    scores[brand] += WEIGHTS["strength"]
+        for brand, metrics in raw_metrics.items():
+            if metrics["mentioned"] and brand.lower() in sentence_lower:
+                if any(word in sentence_lower for word in
+                       ["首选", "最佳", "强烈推荐", "best", "top pick", "most recommended"]):
+                    raw_metrics[brand]["is_strong"] = 1
 
-                # 排名分 (简化版：按句子顺序和关键词)
-                if any(word in sentence_lower for word in [f"第{rank_order}", f"{rank_order}.", "首先", "第一"]):
-                    scores[brand] += WEIGHTS["rank"] * (1 / rank_order)
-                    rank_order += 1
-    return scores
+    # 3. 提取引用深度
+    if references:
+        for brand, metrics in raw_metrics.items():
+            if metrics["mentioned"]:
+                for ref in references:
+                    # 简化逻辑：如果引用链接中包含品牌名，则认为相关
+                    if brand.lower() in ref.lower():
+                        raw_metrics[brand]["ref_count"] += 1
+
+    return raw_metrics
 
 
-# --- 4. 主执行逻辑 ---
+# ==============================================================================
+# main 函数 (v4.0 - 全局直接分析版)
+# ==============================================================================
 def main():
-    """主分析函数"""
-    # 检查API密钥
-    if not os.getenv("OPENAI_API_KEY"):
-        print("错误：请先设置环境变量 'OPENAI_API_KEY'。")
-        return
+    """主分析函数 - 直接分析所有数据，生成唯一的总榜单"""
+    print("--- 使用 v4.0 全局直接分析模型 ---")
 
-    client = openai.OpenAI()
-
-    # 加载数据
+    # 1. 加载数据
     try:
         with open(RESULTS_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -250,85 +276,104 @@ def main():
         print(f"错误: 未找到 '{RESULTS_FILE}' 文件。")
         return
 
-    all_answers = [item['response']['answer'] for item in data if 'response' in item and 'answer' in item['response']]
+    # 2. 全局指标收集：将所有回答视为一个整体
+    print("阶段一：正在全局收集中间指标...")
+    all_brands_raw_metrics = defaultdict(lambda: {
+        "total_mentions": 0,
+        "first_pos_sum": 0,
+        "strong_recommend_count": 0,
+        "total_ref_count": 0,
+        "mention_in_answers": 0,  # 在多少个回答中出现过
+    })
 
-    # --- 运行第一阶段：智能品牌发现 ---
-    # 注意：这一步会调用AI，产生费用。如果已生成 `confirmed_brands.txt` 且满意，可以注释掉下面这行。
-    # discover_and_confirm_brands(client, all_answers)
-
-    print("\n--- 请在脚本中完成 BRAND_DICTIONARY 的填充，然后再次运行此脚本 ---")
-    # 检查词典是否已填充，如果未填充，则提示并退出
-    if len(BRAND_DICTIONARY) <= 12:  # 检查是否还是初始状态
-        print("提示：BRAND_DICTIONARY 似乎尚未填充。请根据 " + CONFIRMED_BRANDS_FILE + " 的内容进行更新。")
-        return
-
-    print("\n--- 阶段二: 量化计分与排名 ---")
-
-    category_scores = defaultdict(lambda: defaultdict(float))
+    total_brand_mentions_across_all = 0
 
     for item in data:
-        category = item.get("category", "Uncategorized")
         answer = item.get("response", {}).get("answer", "")
-        if not answer:
-            continue
+        references = item.get("response", {}).get("references", [])
+        if not answer: continue
 
-        # answer_scores 包含所有被识别品牌的分数（包括国际品牌）
-        answer_scores = calculate_scores(answer, BRAND_DICTIONARY)
+        # 对每个回答进行分析
+        answer_metrics = analyze_single_answer(answer, references, BRAND_DICTIONARY)
 
-        for brand, score in answer_scores.items():
-            # **核心过滤步骤**：只有在白名单中的品牌，其分数才会被计入最终结果
+        # 将指标累加到全局的品牌指标中
+        for brand, metrics in answer_metrics.items():
             if brand in CHINESE_BRANDS_WHITELIST:
-                category_scores[category][brand] += score
+                brand_global_metrics = all_brands_raw_metrics[brand]
+                brand_global_metrics["total_mentions"] += metrics["mention_count"]
+                if metrics["first_pos"] != float('inf'):
+                    brand_global_metrics["first_pos_sum"] += metrics["first_pos"]
+                brand_global_metrics["strong_recommend_count"] += metrics["is_strong"]
+                brand_global_metrics["total_ref_count"] += metrics["ref_count"]
+                brand_global_metrics["mention_in_answers"] += 1
+                total_brand_mentions_across_all += metrics["mention_count"]
 
-        # --- 新增：总榜单计算逻辑 ---
-    print("正在计算总榜单...")
-    total_scores = defaultdict(float)
+    # 3. 全局计分：在所有品牌之间进行一次性标准化和计分
+    print("阶段二：正在进行全局计分...")
+    final_scores = {}
 
-    # 1. 计算每个品类的标准化得分
-    for category, scores in category_scores.items():
-        if not scores:
-            continue
+    if all_brands_raw_metrics:
+        # 计算全局的最大值和最小值用于标准化
+        max_mentions = max(m["total_mentions"] for m in all_brands_raw_metrics.values())
+        min_pos_avg = min(m["first_pos_sum"] / m["mention_in_answers"] for m in all_brands_raw_metrics.values() if
+                          m["mention_in_answers"] > 0)
+        max_strong = max(m["strong_recommend_count"] for m in all_brands_raw_metrics.values())
+        max_refs = max(m["total_ref_count"] for m in all_brands_raw_metrics.values())
 
-        # 找到品类冠军的得分
-        max_score = max(scores.values())
-        if max_score == 0:
-            continue
+        for brand, metrics in all_brands_raw_metrics.items():
+            scores = {}
+            avg_pos = metrics["first_pos_sum"] / metrics["mention_in_answers"] if metrics[
+                                                                                      "mention_in_answers"] > 0 else float(
+                'inf')
 
-        # 计算该品类下所有品牌的标准化得分，并累加到总分中
-        for brand, score in scores.items():
-            normalized_score = (score / max_score) * 100
-            total_scores[brand] += normalized_score
+            # 计算六大维度的得分
+            scores["visibility"] = (1 - normalize_score(avg_pos, min_pos_avg * 5, min_pos_avg) / 100) * WEIGHTS_V3[
+                "visibility"]
+            scores["mention_rate"] = normalize_score(metrics["total_mentions"], max_mentions) / 100 * WEIGHTS_V3[
+                "mention_rate"]
+            scores["ai_ranking"] = normalize_score(metrics["strong_recommend_count"], max_strong) / 100 * WEIGHTS_V3[
+                "ai_ranking"]
+            scores["ref_depth"] = normalize_score(metrics["total_ref_count"], max_refs) / 100 * WEIGHTS_V3["ref_depth"]
+            mind_share_ratio = metrics[
+                                   "total_mentions"] / total_brand_mentions_across_all if total_brand_mentions_across_all > 0 else 0
+            scores["mind_share"] = mind_share_ratio * 100 * (WEIGHTS_V3["mind_share"] / 5)
+            comp_score_avg = (scores["visibility"] + scores["mention_rate"] + scores["ai_ranking"]) / (
+                    WEIGHTS_V3["visibility"] + WEIGHTS_V3["mention_rate"] + WEIGHTS_V3["ai_ranking"]) if (
+                                                                                                                 WEIGHTS_V3[
+                                                                                                                     "visibility"] +
+                                                                                                                 WEIGHTS_V3[
+                                                                                                                     "mention_rate"] +
+                                                                                                                 WEIGHTS_V3[
+                                                                                                                     "ai_ranking"]) > 0 else 0
+            scores["competitiveness"] = comp_score_avg * WEIGHTS_V3["competitiveness"]
 
-        # --- 生成并保存包含总榜单的最终报告 ---
-        with open(RANKING_OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            f.write("# 中国出海品牌GenAI心智占有率排行榜\n\n")
-            f.write(f"报告生成时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            total_score = sum(scores.values())
 
-            # --- 写入总榜单 ---
-            f.write("## ⭐️ 家用电器总榜单 (综合排名) ⭐️\n\n")
-            f.write("此榜单通过标准化各品类得分并加权汇总，反映品牌的跨品类综合影响力。\n\n")
-            f.write("| 排名 | 品牌 | 综合影响力得分 |\n")
-            f.write("|:---:|:---|:---|\n")
-            sorted_total_brands = sorted(total_scores.items(), key=lambda x: x[1], reverse=True)
-            for rank, (brand, score) in enumerate(sorted_total_brands, 1):
-                f.write(f"| {rank} | {brand} | {score:.2f} |\n")
-            f.write("\n---\n\n")  # 分隔线
+            # 将所有需要的数据存入final_scores
+            final_scores[brand] = {
+                "品牌指数": total_score,
+                "总提及次数": metrics["total_mentions"],
+                "出现次数": metrics["mention_in_answers"],
+            }
 
-            # --- 写入各子品类榜单 ---
-            f.write("## 各子品类详细榜单\n\n")
-            for category, scores in sorted(category_scores.items()):
-                f.write(f"### 品类: {category}\n\n")
-                if not scores:
-                    f.write("该品类下未发现可计分的中国品牌。\n\n")
-                    continue
-                f.write("| 排名 | 品牌 | AI心智占有率得分 (原始分) |\n")
-                f.write("|:---:|:---|:---|\n")
-                sorted_brands = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-                for rank, (brand, score) in enumerate(sorted_brands, 1):
-                    f.write(f"| {rank} | {brand} | {score:.2f} |\n")
-                f.write("\n")
+    # 4. 生成最终的唯一报告
+    print("阶段三：正在生成最终报告...")
+    with open(RANKING_OUTPUT_FILE, 'w', encoding='utf-8') as f:
+        f.write("# 中国出海品牌AI认知指数--家用电器类\n\n")
+        f.write(f"报告生成时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
-    print(f"分析完成！仅包含中国品牌的最终排行榜已保存到 '{RANKING_OUTPUT_FILE}'。")
+        f.write("| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 |\n")
+        f.write("|:---:|:---|:---:|:---:|:---:|\n")
+
+        sorted_brands = sorted(final_scores.items(), key=lambda x: x[1]["品牌指数"], reverse=True)
+
+        for rank, (brand, scores_data) in enumerate(sorted_brands, 1):
+            f.write(
+                f"| {rank} | {brand} | **{scores_data['品牌指数']:.2f}** | {scores_data['总提及次数']} | {scores_data['出现次数']} |\n")
+
+        f.write("\n")
+
+    print(f"分析完成！全局总榜单已保存到 '{RANKING_OUTPUT_FILE}'。")
 
 
 if __name__ == "__main__":
