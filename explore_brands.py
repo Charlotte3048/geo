@@ -1,140 +1,146 @@
+import openai
 import json
-import spacy
-from collections import Counter
+import os
 import re
+from collections import Counter
+import time
 
-# --- 配置 ---
+# ==============================================================================
+# 纯净智能品牌探索脚本 (v3.0 - Pure LLM)
+# 描述: 从零开始，仅依赖大语言模型从 results.json 中智能提取候选品牌。
+# 确保在运行脚本前设置了以下环境变量，在当前目录的终端中执行：:
+# export OPENAI_API_KEY="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"
+# export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+# ==============================================================================
+
+# --- 1. 配置 ---
 RESULTS_FILE = "results.json"
-OUTPUT_FILE = "candidate_brands_cleaned.txt"  # 使用新的输出文件名以示区别
+OUTPUT_FILE = "candidate_brands_pure_llm.txt"
 
-# --- 加载语言模型 ---
-try:
-    nlp_en = spacy.load("en_core_web_sm")
-    nlp_zh = spacy.load("zh_core_web_sm")
-    print("成功加载 en_core_web_sm 和 zh_core_web_sm 模型。")
-except OSError:
-    print("错误：请先下载spaCy语言模型...")
-    exit()
+# 用于智能提取的模型 (推荐使用能力强、性价比高的模型)
+# google/gemini-pro 是一个非常好的选择
+EXTRACTION_MODEL = "google/gemini-2.5-flash"
 
-# --- 优化后的噪音词列表 ---
-# 我们将您发现的噪音词以及其他常见噪音词加入这个集合
-NOISE_WORDS = {
-    # 1. 常见地理位置和组织
-    "amazon", "google", "apple", "facebook", "microsoft", "europe", "china", "us",
-    "usa", "america", "north america", "ces", "uk", "germany", "france", "eu",
-
-    # 2. 常见非品牌术语 (技术、功能、通用词)
-    "robot", "vacuum", "cleaner", "model", "brand", "company", "price", "app",
-    "tech", "technology", "consumer", "product", "series", "pro", "ultra", "plus",
-    "home", "kitchen", "appliances", "review", "website", "page", "com", "https",
-    "ul", "tra", "max", "id", "http", "https", "www",
-    "ai", "model", "market", "user", "customer", "service", "models", "brands",
-    "design", "performance", "quality", "feature", "features", "system", "systems",
-    "function", "functions", "ability", "navigation", "identification", "performance",
-    "mopping", "mop", "station", "base", "camera", "laser", "lds", "vslam",
-
-    # 3. 权威媒体和网站
-    "the verge", "cnet", "rtings.com", "rtings", "forbes", "techradar", "pcmag", "wired",
-    "youtube", "reddit",
-
-    # 4. 中文噪音词
-    "机器人", "吸尘器", "品牌", "公司", "型号", "市场", "用户", "性价比", "中国",
-    "科技", "有限公司", "产品", "系列", "问题", "答案", "推荐", "区别", "选择",
-    "一个", "一些", "几个", "这个", "那个", "什么", "怎么样", "我们", "他们",
-    "技术", "智能", "功能", "系统", "识别", "能力", "清洁", "拖布", "导航",
-    "表现", "基站", "方面", "体验", "效果", "优势", "核心", "旗舰", "自动",
-    "避障", "算法", "版本", "价格", "评测", "媒体", "网站", "网页", "链接",
-}
+# 将文本分块的大小 (字符数)
+CHUNK_SIZE = 2000
 
 
-def is_valid_candidate(text: str) -> bool:
-    """增强版的候选词有效性检查"""
-    text_lower = text.lower().strip()
+# --- 2. 智能品牌发现 (LLM-Powered) ---
+def get_brands_from_chunk_with_ai(client: openai.OpenAI, text_chunk: str) -> list:
+    """
+    使用强大的AI模型从一小块文本中提取品牌名称。
+    """
+    system_prompt = """
+    你是一个高度精准的品牌名称识别引擎。你的唯一任务是从给定的文本中，抽取出所有明确的、代表公司或产品的【品牌名称】。
 
-    # 1. 过滤掉噪音词
-    if text_lower in NOISE_WORDS:
-        return False
-    # 2. 过滤掉太短或太长的词
-    if len(text_lower) < 2 or len(text_lower) > 20:
-        return False
-    # 3. 过滤掉纯数字或主要包含数字的词
-    if text_lower.isdigit() or sum(c.isdigit() for c in text_lower) > len(text_lower) / 2:
-        return False
-    # 4. 过滤掉不含任何字母的词 (允许中文)
-    if not any(c.isalpha() for c in text_lower):
-        return False
-    # 5. 过滤掉包含非法字符的词
-    if not re.match(r'^[a-zA-Z0-9\-\.\s\u4e00-\u9fa5]+$', text_lower):
-        return False
-    # 6. 过滤掉以非字母数字开头的词
-    if not text_lower[0].isalnum():
-        return False
+    **严格遵守以下规则:**
+    1.  **只返回品牌名**: 例如 "Roborock", "TCL", "美的", "Anker"。
+    2.  **坚决过滤非品牌词**:
+        *   **技术术语**: 忽略 "Mini LED", "QLED", "Android"。
+        *   **地理位置**: 忽略 "北美", "欧洲", "China"。
+        *   **通用名词**: 忽略 "电视", "技术", "系列", "公司", "性价比"。
+        *   **网站与媒体**: 忽略 "Amazon", "Rtings.com", "The Verge"。
+    3.  **合并常见别名**: 如果发现 "石头科技" 和 "Roborock" 同时出现，请尽量只返回 "Roborock"。如果发现 "小米" 和 "Mijia"，请尽量只返回 "Xiaomi"。
+    4.  **输出格式**: 必须以一个JSON数组的格式返回你发现的品牌名，例如: ["Roborock", "Ecovacs", "Midea"]。如果未发现任何品牌，则返回空数组 []。
+    """
+    try:
+        response = client.chat.completions.create(
+            model=EXTRACTION_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": text_chunk}
+            ],
+            temperature=0.0,
+            response_format={"type": "json_object"},
+        )
+        content = json.loads(response.choices[0].message.content)
 
-    return True
+        if isinstance(content, dict):
+            return content.get("brands", [])
+        elif isinstance(content, list):
+            return content
+        return []
+    except Exception as e:
+        # 在处理单个块时出错，打印错误但继续
+        print(f"    - 智能提取块时发生错误: {e}")
+        return []
 
 
-def process_entities(doc, candidate_list):
-    """从spaCy的doc对象中提取实体和专有名词"""
-    # 提取命名实体 (ORG, PRODUCT)
-    for ent in doc.ents:
-        if ent.label_ in ["ORG", "PRODUCT"]:
-            candidate_list.append(ent.text)
-    # 提取专有名词 (PROPN)
-    for token in doc:
-        if token.pos_ == "PROPN":
-            candidate_list.append(token.text)
-
-
+# --- 3. 主执行函数 ---
 def main():
     """主执行函数"""
+    # --- 加载原始数据 ---
     print(f"正在从 '{RESULTS_FILE}' 文件中加载数据...")
     try:
         with open(RESULTS_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
+        all_answers = [item['response']['answer'] for item in data if
+                       'response' in item and 'answer' in item['response']]
+        print(f"已加载 {len(all_answers)} 条AI回答。")
+    except Exception as e:
         print(f"错误: 处理 '{RESULTS_FILE}' 文件时出错: {e}")
         return
 
-    all_answers = [item['response']['answer'] for item in data if 'response' in item and 'answer' in item['response']]
-    print(f"已加载 {len(all_answers)} 条AI回答。")
+    # --- 创建OpenAI客户端 ---
+    try:
+        client = openai.OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
+        print(f"使用模型 '{EXTRACTION_MODEL}' 进行品牌提取。")
+    except TypeError:
+        print("错误: 请确保已设置 OPENROUTER_API_KEY 环境变量。")
+        return
 
-    candidate_brands = []
-    print("正在使用 spaCy 提取候选品牌词...")
-    for answer in all_answers:
-        # 统一处理，先用英文模型，再用中文模型补充
-        process_entities(nlp_en(answer), candidate_brands)
-        process_entities(nlp_zh(answer), candidate_brands)
+    # --- 开始智能提取 ---
+    all_discovered_brands = []
+    print("\n--- 正在使用大语言模型智能提取品牌 ---")
 
-    print("提取完成。正在进行清洗和频率统计...")
+    for i, answer in enumerate(all_answers):
+        print(f"正在处理回答 {i + 1}/{len(all_answers)}...")
+        if not answer.strip():
+            continue
 
-    # --- 这里是修正的部分 ---
-    # 使用一个清晰的 for 循环代替复杂的列表推导式
-    valid_brands = []
-    for brand in candidate_brands:
+        # 将长回答分块处理
+        for j in range(0, len(answer), CHUNK_SIZE):
+            chunk = answer[j:j + CHUNK_SIZE]
+            print(f"  - 正在处理块 {j // CHUNK_SIZE + 1}...")
+
+            new_brands = get_brands_from_chunk_with_ai(client, chunk)
+
+            if new_brands:
+                print(f"    + 发现候选: {new_brands}")
+                all_discovered_brands.extend(new_brands)
+
+            time.sleep(1)  # 礼貌地等待，避免速率超限
+
+    # --- 汇总与统计 ---
+    print("\n--- 正在汇总、清洗和统计 ---")
+
+    # 对所有发现的品牌进行最终的频率统计
+    final_brand_counts = Counter()
+    for brand in all_discovered_brands:
         cleaned_brand = brand.strip()
-        if is_valid_candidate(cleaned_brand):
-            valid_brands.append(cleaned_brand)
+        # 进行一次非常基础的最终清洗
+        if len(cleaned_brand) > 1 and not cleaned_brand.isdigit():
+            final_brand_counts[cleaned_brand] += 1
 
-    # 现在对清洗过的列表进行频率统计
-    brand_counts = Counter(valid_brands)
-    # --- 修正结束 ---
+    print(f"分析完成！共发现 {len(final_brand_counts)} 个独特的候选品牌。")
 
-    print(f"清洗后，发现 {len(brand_counts)} 个独特的候选品牌。")
-
-    # 保存到文件
+    # --- 保存结果 ---
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        f.write("# GenAI 候选品牌列表 (已优化过滤, 按出现频率排序)\n")
-        f.write("# --------------------------------------------------\n")
-        f.write("# 请审核此列表以构建您的 BRAND_DICTIONARY。\n\n")
+        f.write("# 纯净智能品牌探索报告 (v3.0 - Pure LLM)\n")
+        f.write("# ----------------------------------------\n")
+        f.write("# 请审核此列表，以创建或完善您的 config.yaml 文件。\n\n")
 
-        if not brand_counts:
+        if not final_brand_counts:
             f.write("未发现有效的候选品牌。")
         else:
-            for brand, count in brand_counts.most_common():
+            for brand, count in final_brand_counts.most_common():
                 f.write(f"{brand} ({count})\n")
 
     print(f"结果已成功保存到 '{OUTPUT_FILE}' 文件中。")
-    print("\n下一步：请手动审核该文件，以创建或更新您的品牌词典。")
+    print("\n下一步：请手动审核该文件，以创建您的品牌词典和白名单。")
 
 
 if __name__ == "__main__":

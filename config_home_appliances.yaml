@@ -1,0 +1,200 @@
+# ==============================================================================
+# 任务配置: 家用电器 (Home Appliances) - 基于v3.0 LLM探索结果
+# ==============================================================================
+
+task_name: "家用电器品类AI认知分析"
+report_title: "# 中国出海品牌AI认知指数 -- 家用电器类"
+
+# --- 文件路径配置 ---
+results_file: "results.json"
+ranking_output_file: "ranking_report_home_appliances.md"
+
+# --- 计分权重 (v5.0) ---
+weights:
+  visibility: 20
+  mention_rate: 20
+  ai_ranking: 20
+  ref_depth: 15
+  mind_share: 15
+  competitiveness: 10
+
+# ==============================================================================
+# 品牌词典 (BRAND_DICTIONARY)
+# 描述: 定义所有需要识别的品牌及其别名。键是标准名，值是别名列表。
+# 来源: 基于 candidate_brands_pure_llm.txt 手动审核和整理。
+# ==============================================================================
+brand_dictionary:
+  # --- 中国品牌 ---
+  Midea: ["Midea", "美的"]
+  Hisense: ["Hisense", "海信"]
+  Xiaomi: ["Xiaomi", "小米", "Mijia", "米家"]
+  Haier: ["Haier", "海尔", "Casarte", "卡萨帝"] # Casarte是海尔高端品牌
+  TCL: ["TCL"]
+  Joyoung: ["Joyoung", "九阳"]
+  Dreame: ["Dreame", "追觅"]
+  Gree: ["Gree", "GREE", "格力"]
+  Roborock: ["Roborock", "石头科技"]
+  Tineco: ["Tineco", "添可"]
+  Soundcore: ["Soundcore"] # Anker旗下音频品牌
+  Little Swan: ["Little Swan", "小天鹅"] # 美的旗下品牌
+  1MORE: ["1MORE"]
+  Anker: ["Anker", "Anker Innovations"]
+  Skyworth: ["Skyworth", "创维"]
+  Bear: ["Bear", "小熊"]
+  Ecovacs: ["Ecovacs", "ECOVACS"]
+  COSORI: ["COSORI"]
+  Donlim: ["Donlim"]
+  Morphy Richards: ["Morphy Richards"] # 中国新宝股份运营
+  Buydeem: ["Buydeem", "北鼎"]
+  TOZO: ["TOZO"]
+  FiiO: ["FiiO", "飞傲"]
+  Shokz: ["Shokz", "韶音"]
+  BenQ: ["BenQ"]
+  Innocn: ["Innocn", "联合创新"]
+  AUX: ["AUX", "奥克斯"]
+  Ronshen: ["Ronshen", "容声"]
+  COLMO: ["COLMO"] # 美的旗下高端品牌
+  Viomi: ["Viomi", "云米"] # 之前列表有，建议保留
+  Moyu: ["Moyu", "摩鱼"]
+  SUPOR: ["SUPOR", "苏泊尔"]
+  Zhenmi: ["Zhenmi", "臻米"]
+  Soocas: ["Soocas", "素士"]
+  Oclean: ["Oclean"]
+  Beautitec: ["Beautitec"]
+  SoundPEATS: ["SoundPEATS"]
+  QCY: ["QCY"]
+  Realme: ["Realme", "真我"]
+  OPPO: ["OPPO"]
+  Cayin: ["Cayin", "凯音"]
+  HIFIMAN: ["HIFIMAN"]
+  Vidonn: ["Vidonn", "维动"]
+  NANK: ["NANK", "南卡"]
+  KZ: ["KZ"]
+  Huawei: ["Huawei", "华为"] # 之前列表有，建议保留
+
+  # --- 国际品牌 (用于上下文分析，不过滤) ---
+  LG: ["LG", "LG Electronics", "LG Signature"]
+  Samsung: ["Samsung", "三星", "Samsung Bespoke"]
+  Sony: ["Sony", "索尼"]
+  Panasonic: ["Panasonic", "松下"]
+  Daikin: ["Daikin", "大金"]
+  Toshiba: ["Toshiba", "东芝"]
+  GE Appliances: ["GE Appliances"] # 已被海尔收购，但通常被视为国际品牌运营
+  Bosch: ["Bosch", "博世"]
+  Bose: ["Bose", "BOSE"]
+  Sennheiser: ["Sennheiser"]
+  Mitsubishi Electric: ["Mitsubishi Electric"]
+  Hitachi: ["Hitachi", "Johnson Controls-Hitachi"]
+  Gorenje: ["Gorenje"]
+  Whirlpool: ["Whirlpool", "惠而浦"]
+  Miele: ["Miele"]
+  Dyson: ["Dyson"]
+  Apple: ["Apple", "AirPods"]
+  Bowers & Wilkins: ["Bowers & Wilkins", "B&W"]
+  Philips: ["Philips", "飞利浦", "Philips Saeco"]
+  Siemens: ["Siemens", "西门子"]
+  Instant Pot: ["Instant Pot", "Instant Brands"]
+  Audio-Technica: ["Audio-Technica"]
+  Jabra: ["Jabra"]
+  Vizio: ["Vizio"]
+  ASUS: ["ASUS", "ROG"] # ROG是ASUS子品牌
+  KUKA: ["KUKA"]
+  Liebherr: ["Liebherr"]
+  AEG: ["AEG"]
+  Sonos: ["Sonos"]
+  Dell: ["Dell", "Alienware"] # Alienware是Dell子品牌
+  Insignia: ["Insignia"]
+  Element: ["Element"]
+  Electrolux: ["Electrolux"]
+  Clivet: ["Clivet"]
+  Fisher & Paykel: ["Fisher & Paykel"]
+  Carrier: ["Carrier"]
+  Gaggenau: ["Gaggenau"]
+  Sub-Zero: ["Sub-Zero"]
+  Thermador: ["Thermador"]
+  KitchenAid: ["KitchenAid"]
+  ARB: ["ARB"]
+  Ninja: ["Ninja", "SharkNinja", "Shark Ninja"]
+  Muji: ["Muji", "无印良品"]
+  Zojirushi: ["Zojirushi", "象印"]
+  Tiger: ["Tiger", "虎牌"]
+  BRUNO: ["BRUNO"]
+  iRobot: ["iRobot"]
+  BISSELL: ["BISSELL", "Bissell"]
+  Smeg: ["Smeg"]
+  BALMUDA: ["BALMUDA", "Balmuda"]
+  De'Longhi: ["De'Longhi", "德龙"]
+  Kenwood: ["Kenwood"]
+  Braun: ["Braun", "博朗"]
+  FOREO: ["FOREO"]
+  Tronsmart: ["Tronsmart"]
+  Denon: ["Denon"]
+  Marantz: ["Marantz"]
+  Qualcomm: ["Qualcomm"]
+  JBL: ["JBL"]
+  Ultimate Ears: ["Ultimate Ears", "UE"]
+  Logitech: ["Logitech", "罗技"]
+  Bang & Olufsen: ["Bang & Olufsen", "B&O"]
+  Astell&Kern: ["Astell&Kern"]
+  Focal: ["Focal"]
+  # 有中国背景，但在国际上常被视为独立Hi-Fi品牌
+  Beko: ["Beko"]
+  Sanyo: ["Sanyo", "三洋"]
+  Maytag: ["Maytag"]
+  Daewoo: ["Daewoo", "大宇"]
+  Candy: ["Candy"]
+  Hoover: ["Hoover"]
+  Tefal: ["Tefal"]
+
+# ==============================================================================
+# 中国品牌白名单 (CHINESE_BRANDS_WHITELIST)
+# 描述: 定义哪些品牌是“中国品牌”，只有这里的品牌才会进入最终排名。
+# 注意: 必须使用 brand_dictionary 中的【标准键名】。
+# ==============================================================================
+chinese_brands_whitelist:
+  - Midea
+  - Hisense
+  - Xiaomi
+  - Haier
+  - TCL
+  - Joyoung
+  - Dreame
+  - Gree
+  - Roborock
+  - Tineco
+  - Soundcore
+  - Little Swan
+  - 1MORE
+  - Anker
+  - Skyworth
+  - Bear
+  - Ecovacs
+  - COSORI
+  - Donlim
+  - Morphy Richards
+  - Buydeem
+  - TOZO
+  - FiiO
+  - Shokz
+  - BenQ
+  - Innocn
+  - AUX
+  - Ronshen
+  - COLMO
+  - Viomi
+  - Moyu
+  - SUPOR
+  - Zhenmi
+  - Soocas
+  - Oclean
+  - Beautitec
+  - SoundPEATS
+  - QCY
+  - Realme
+  - OPPO
+  - Cayin
+  - HIFIMAN
+  - Vidonn
+  - NANK
+  - KZ
+  - Huawei

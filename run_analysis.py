@@ -5,7 +5,7 @@ import time
 from typing import List, Dict, Any
 
 # --- 1. 配置 (Configuration) ---
-# 确保在运行脚本前设置了以下环境变量:
+# 确保在运行脚本前设置了以下环境变量，在当前目录的终端中执行：:
 # export OPENAI_API_KEY="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"
 # export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 
@@ -30,21 +30,6 @@ RETRY_DELAY = 5  # 重试前的等待时间（秒）
 
 
 # --- 2. 准备问题列表 ---
-# 我们将问题存储在一个单独的JSON文件中，方便管理。
-# questions.json 的格式应该如下:
-# [
-#   {
-#     "id": 1,
-#     "category": "家用电器-扫地机器人",
-#     "question": "请推荐几个在海外市场最受欢迎的中国扫地机器人品牌及其代表型号。"
-#   },
-#   {
-#     "id": 2,
-#     "category": "家用电器-扫地机器人",
-#     "question": "石头科技(Roborock)和科沃斯(Ecovacs)的旗舰扫地机器人有什么区别？哪个更值得购买？"
-#   }
-# ]
-
 def prepare_questions_file():
     """如果问题文件不存在，则创建一个示例文件。"""
     if not os.path.exists(QUESTIONS_FILE):
@@ -138,7 +123,7 @@ def get_ai_response_with_references(client: openai.OpenAI, question: str) -> Dic
 # --- 4. 主执行逻辑 ---
 def main():
     """主函数，用于执行整个流程。"""
-    print("--- 开始执行GenAI品牌心智占有率数据收集脚本 ---")
+    print("--- 开始执行GenAI品牌认知数据收集脚本 ---")
 
     # 检查API密钥和URL是否设置
     if not os.getenv("OPENAI_API_KEY") or not os.getenv("OPENAI_BASE_URL"):
