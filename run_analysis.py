@@ -2,187 +2,166 @@ import openai
 import json
 import os
 import time
-from typing import List, Dict, Any
+import argparse
+import yaml  # 引入PyYAML
 
-# --- 1. 配置 (Configuration) ---
-# 确保在运行脚本前设置了以下环境变量，在当前目录的终端中执行：:
-# export OPENAI_API_KEY="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"
+
+# ==============================================================================
+# 终极数据采集引擎 (v1.0 - 任务驱动版)
+# 描述: 一个由中央配置文件驱动的、按任务隔离的、支持断点续传的数据采集脚本。
+# ==============================================================================
+# 示例用法:
+# python run_analysis.py --task ha_perplexity
+# python run_analysis.py --task sh_gemini
+# export OPENROUTER_API_KEY="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"
 # export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+# ==============================================================================
 
-# 要调用的具备联网功能的模型 (在OpenRouter上查找 )
-MODEL_NAME = "openai/chatgpt-4o-latest"
-
-# 输入的问题文件
-QUESTIONS_FILE = "questions.json"
-
-# 输出的结果文件
-RESULTS_FILE = "results.json"
-
-# 两次API调用之间的延迟（秒），以避免触发速率限制
-REQUEST_DELAY = 2
-
-# API请求的重试次数
-MAX_RETRIES = 3
-RETRY_DELAY = 5  # 重试前的等待时间（秒）
-
-
-# --- 2. 准备问题列表 ---
-def prepare_questions_file():
-    """如果问题文件不存在，则创建一个示例文件。"""
-    if not os.path.exists(QUESTIONS_FILE):
-        print(f"未找到问题文件 '{QUESTIONS_FILE}'。正在创建一个示例文件...")
-        sample_questions = [
-            {
-                "id": 1,
-                "category": "家用电器-扫地机器人",
-                "question": "请推荐几个在海外市场最受欢迎的中国扫地机器人品牌及其代表型号。"
-            },
-            {
-                "id": 2,
-                "category": "家用电器-扫地机器人",
-                "question": "石头科技(Roborock)和科沃斯(Ecovacs)的旗舰扫地机器人有什么区别？哪个更值得购买？"
-            },
-            {
-                "id": 3,
-                "category": "家用电器-空气炸锅",
-                "question": "对于一个在欧洲生活的用户，你会推荐哪个品牌的中国空气炸锅？请说明理由。"
-            }
-        ]
-        with open(QUESTIONS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(sample_questions, f, ensure_ascii=False, indent=2)
-        print("示例文件创建成功。您可以根据需要修改此文件。")
-
-
-# --- 3. 核心API调用函数 ---
-def get_ai_response_with_references(client: openai.OpenAI, question: str) -> Dict[str, Any]:
-    """
-    调用AI模型获取答案，并尝试提取引用来源。
-    注意：OpenRouter/OpenAI的联网功能返回格式可能不同。
-    对于支持工具调用的模型，它会先返回工具调用请求，然后我们提供结果。
-    对于像Gemini Pro这样内置搜索的模型，引用可能直接在内容中或元数据里。
-    此处的实现是一个通用模板，需要根据你选择的模型的具体行为进行微调。
-    """
-    print(f"\n正在处理问题: {question}")
-
-    for attempt in range(MAX_RETRIES):
+# --- API 调用核心函数 ---
+def get_ai_response(client: openai.OpenAI, question: str, model: str, retries=3, delay=5):
+    """调用AI模型获取回答，包含重试逻辑"""
+    for attempt in range(retries):
         try:
-            # OpenRouter通过在HTTP头中添加 "X-Title" 来识别你的项目
-            # OpenAI库v1.x.x版本后，可以通过 extra_headers 参数来设置
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {"role": "system",
-                     "content": "你是一个严谨的市场分析师。你的回答需要基于最新的网络信息，并尽可能提供你的信息来源网址。请用中文回答。"},
-                    {"role": "user", "content": question}
-                ],
-                # extra_headers={
-                #     "HTTP-Referer": "https://github.com/your-repo",  # 推荐填写 ，便于OpenRouter识别项目来源
-                #     "X-Title": "GenAI Brand Ranking Project"  # 推荐填写
-                # }
+            print(f"    - 正在调用模型 '{model}' (尝试 {attempt + 1}/{retries})...")
+            completion = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": question}],
+                temperature=0.1,  # 使用较低的温度以获得更稳定的回答
             )
+            # 假设返回的格式包含 answer 和 references
+            # 注意：不同模型的返回结构可能不同，这里做一个兼容性假设
+            # 真实的解析可能需要根据模型适配
+            response_content = completion.choices[0].message.content
 
-            # 提取内容和可能的引用
-            # 不同的联网模型返回引用的方式不同。
-            # 1. 有些模型会在文本末尾直接列出 [1]... [2]... 并附上链接。
-            # 2. 有些模型的API响应体中会包含结构化的 'citations' 或 'sources' 字段。
-            # 我们需要解析返回的 content 文本来查找URL。
-            content = response.choices[0].message.content
+            # 这是一个简化的解析，实际可能需要更复杂的逻辑
+            # 例如，Perplexity的引用格式可能不同
+            references = re.findall(r'https?://[^\s )]+', response_content)
 
-            # 一个简单的URL提取逻辑 (可以使用更复杂的正则表达式)
-            import re
-            urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\ ),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
-                              content)
-
-            print(f"成功获取回答。")
             return {
-                "answer": content,
-                "references": list(set(urls))  # 去重
+                "answer": response_content,
+                "references": references
             }
-
-        except openai.APIError as e:
-            print(f"发生API错误 (尝试 {attempt + 1}/{MAX_RETRIES}): {e}")
-        except openai.RateLimitError as e:
-            print(f"触发速率限制 (尝试 {attempt + 1}/{MAX_RETRIES})。将在 {RETRY_DELAY} 秒后重试...")
-            time.sleep(RETRY_DELAY)
         except Exception as e:
-            print(f"发生未知错误 (尝试 {attempt + 1}/{MAX_RETRIES}): {e}")
-
-        if attempt < MAX_RETRIES - 1:
-            time.sleep(RETRY_DELAY)
-
-    print("所有重试均失败。跳过此问题。")
-    return {
-        "answer": "ERROR: Failed to get response after multiple retries.",
-        "references": []
-    }
+            print(f"    - 发生API错误 (尝试 {attempt + 1}/{retries}): {e}")
+            if attempt < retries - 1:
+                print(f"    - 等待 {delay} 秒后重试...")
+                time.sleep(delay)
+            else:
+                print("    - 所有重试均失败。")
+                return None
 
 
-# --- 4. 主执行逻辑 ---
+# --- 主执行函数 ---
 def main():
-    """主函数，用于执行整个流程。"""
-    print("--- 开始执行GenAI品牌认知数据收集脚本 ---")
+    # --- 1. 解析命令行参数 ---
+    parser = argparse.ArgumentParser(description="终极数据采集引擎 (v1.0 - 任务驱动版)。")
+    parser.add_argument("--task", required=True, help="指定要执行的任务名称 (例如: ha_gpt)。")
+    parser.add_argument("--config", default="config.yaml", help="中央配置文件的路径。")
+    args = parser.parse_args()
 
-    # 检查API密钥和URL是否设置
-    if not os.getenv("OPENAI_API_KEY") or not os.getenv("OPENAI_BASE_URL"):
-        print("错误：请先设置环境变量 'OPENAI_API_KEY' 和 'OPENAI_BASE_URL'。")
-        print("例如: export OPENAI_API_KEY='sk-or-...'")
-        print("      export OPENAI_BASE_URL='https://openrouter.ai/api/v1'")
+    # --- 2. 加载中央配置文件 ---
+    try:
+        with open(args.config, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        print(f"错误: 中央配置文件 '{args.config}' 未找到。")
         return
 
-    # 初始化OpenAI客户端
-    client = openai.OpenAI()
+    # --- 3. 获取当前任务的配置 ---
+    task_config = config.get('tasks', {}).get(args.task)
+    if not task_config:
+        print(f"错误: 在 '{args.config}' 中未找到任务 '{args.task}' 的配置。")
+        return
 
-    # 准备问题文件
-    prepare_questions_file()
+    model_key = task_config.get('model_key')
+    category_prefix = task_config.get('category_prefix')
+    model_id = config.get('models', {}).get(model_key)
+    questions_file_path = config.get('global_settings', {}).get('questions_file')
 
-    # 读取问题
-    with open(QUESTIONS_FILE, 'r', encoding='utf-8') as f:
-        questions = json.load(f)
+    if not all([model_key, category_prefix, model_id, questions_file_path]):
+        print("错误: 任务配置不完整，缺少 model_key, category_prefix, model_id 或 questions_file。")
+        return
 
-    # 检查是否有已存在的结果，以便断点续传
-    if os.path.exists(RESULTS_FILE):
-        with open(RESULTS_FILE, 'r', encoding='utf-8') as f:
+    print(f"--- 开始执行采集任务: {args.task} ---")
+    print(f"  - 模型: {model_id}")
+    print(f"  - 分类前缀: '{category_prefix}'")
+
+    # --- 4. 设置API客户端 ---
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        print("错误: 请先设置环境变量 'OPENROUTER_API_KEY'。")
+        return
+    client = openai.OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+
+    # --- 5. 加载并筛选问题 ---
+    try:
+        with open(questions_file_path, 'r', encoding='utf-8') as f:
+            all_questions = json.load(f)
+    except FileNotFoundError:
+        print(f"错误: 问题文件 '{questions_file_path}' 未找到。")
+        return
+
+    questions_to_run = [q for q in all_questions if q.get('category', '').startswith(category_prefix)]
+    print(f"已从 '{questions_file_path}' 加载并筛选出 {len(questions_to_run)} 个相关问题。")
+
+    # --- 6. 准备输出文件和断点续传 ---
+    output_file = f"results_{args.task}.json"
+    processed_results = []
+    processed_ids = set()
+
+    if os.path.exists(output_file):
+        print(f"发现已存在的输出文件 '{output_file}'，将进行增量采集。")
+        with open(output_file, 'r', encoding='utf-8') as f:
             try:
-                results = json.load(f)
+                processed_results = json.load(f)
+                processed_ids = {item['id'] for item in processed_results}
+                print(f"已加载 {len(processed_results)} 条已处理的结果。")
             except json.JSONDecodeError:
-                results = []
-    else:
-        results = []
+                print(f"警告: '{output_file}' 文件内容不是有效的JSON，将创建一个新文件。")
+                processed_results = []
+                processed_ids = set()
 
-    processed_ids = {item['id'] for item in results}
-    print(f"已找到 {len(results)} 条旧结果。将跳过已处理的问题。")
+    # --- 7. 执行数据采集循环 ---
+    for i, question_data in enumerate(questions_to_run):
+        question_id = question_data.get('id')
+        question_text = question_data.get('question')
 
-    # 循环处理问题
-    for item in questions:
-        if item['id'] in processed_ids:
-            print(f"问题ID {item['id']} 已处理，跳过。")
+        print(f"\n正在处理问题 {i + 1}/{len(questions_to_run)} (ID: {question_id}): {question_text}")
+
+        if question_id in processed_ids:
+            print("  - 此问题已处理，跳过。")
             continue
 
-        response_data = get_ai_response_with_references(client, item['question'])
+        response = get_ai_response(client, question_text, model_id)
 
-        # 组合结果
-        result_item = {
-            "id": item['id'],
-            "category": item['category'],
-            "question": item['question'],
-            "ai_model": MODEL_NAME,
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "response": response_data
-        }
-        results.append(result_item)
+        if response:
+            result_entry = {
+                "id": question_id,
+                "category": question_data.get('category'),
+                "question": question_text,
+                "ai_model": model_id,
+                "task": args.task,  # 记录任务名
+                "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
+                "response": response
+            }
+            processed_results.append(result_entry)
 
-        # 实时保存结果到文件，防止中途失败丢失数据
-        with open(RESULTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
-
-        print(f"结果已保存到 '{RESULTS_FILE}'。")
-
-        # 等待一段时间，避免请求过于频繁
-        time.sleep(REQUEST_DELAY)
+            # --- 8. 实时保存 ---
+            try:
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(processed_results, f, ensure_ascii=False, indent=2)
+                print(f"  - 结果已实时保存到 '{output_file}'。")
+            except Exception as e:
+                print(f"  - 实时保存失败: {e}")
+        else:
+            print("  - 获取AI回答失败，跳过此问题。")
 
     print("\n--- 所有问题处理完毕 ---")
-    print(f"最终结果已全部保存在 '{RESULTS_FILE}' 文件中。")
+    print(f"采集任务 '{args.task}' 完成！最终结果已保存在 '{output_file}'。")
 
 
 if __name__ == "__main__":
+    # 在 re 模块导入时添加，以防万一
+    import re
+
     main()
