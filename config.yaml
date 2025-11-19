@@ -1,0 +1,57 @@
+# ============================================
+# GenAI 心智占有率分析平台 - 中央配置文件
+# ============================================
+
+# --- 全局设置 ---
+global_settings:
+  questions_file: "questions.json" # 所有问题的源文件
+  # 定义模型，方便切换和引用
+  models:
+    gpt: "openai/chatgpt-4o-latest"
+    gemini: "google/gemini-2.5-flash"
+    perplexity: "perplexity/sonar"
+
+# --- 任务定义 (核心) ---
+# 在这里定义我们所有的分析任务
+tasks:
+  # --- 家用电器品类 ---
+  ha_gpt:
+    model_key: gpt # 引用上面定义的模型
+    category_prefix: "家用电器-"
+    brand_dictionary: &ha_brands # YAML锚点，用于复用
+      # ... (家用电器的品牌词典) ...
+    chinese_brands_whitelist: &ha_whitelist
+      # ... (家用电器的白名单) ...
+
+  ha_gemini:
+    model_key: gemini
+    category_prefix: "家用电器-"
+    brand_dictionary: *ha_brands # 引用锚点
+    chinese_brands_whitelist: *ha_whitelist
+
+  ha_perplexity:
+    model_key: perplexity
+    category_prefix: "家用电器-"
+    brand_dictionary: *ha_brands
+    chinese_brands_whitelist: *ha_whitelist
+
+  # --- 智能硬件品类 ---
+  sh_gpt:
+    model_key: gpt
+    category_prefix: "智能硬件-"
+    brand_dictionary: &sh_brands
+      # ... (智能硬件的品牌词典) ...
+    chinese_brands_whitelist: &sh_whitelist
+      # ... (智能硬件的白名单) ...
+
+  sh_gemini:
+    model_key: gemini
+    category_prefix: "智能硬件-"
+    brand_dictionary: *sh_brands
+    chinese_brands_whitelist: *sh_whitelist
+
+  sh_perplexity:
+    model_key: perplexity
+    category_prefix: "智能硬件-"
+    brand_dictionary: *sh_brands
+    chinese_brands_whitelist: *sh_whitelist
