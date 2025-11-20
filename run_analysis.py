@@ -12,7 +12,7 @@ import yaml  # 引入PyYAML
 # ==============================================================================
 # 示例用法:
 # python run_analysis.py --task ha_perplexity
-# python run_analysis.py --task sh_gemini
+# python run_analysis.py --task sh_perplexity
 # export OPENROUTER_API_KEY="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"
 # export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 # ==============================================================================

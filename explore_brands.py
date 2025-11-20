@@ -10,13 +10,16 @@ import time
 # 最终品牌探索引擎 (v4.0 - 按任务隔离版)
 # 描述: 可根据任务名称，筛选性地分析数据，并生成隔离的、带配置模板的输出。
 # ==============================================================================
+# export OPENROUTER_API_KEY="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"
+# export OPENROUTER_API_BASE_URL="https://openrouter.ai/api/v1"
 # 示例用法:
 # python explore_brands.py --task smart_hardware --category_prefix "智能硬件-"
+# python explore_brands.py --task home_appliance --category_prefix "家用电器-"
 # ==============================================================================
 
 # --- 配置 ---
 # 这些现在是默认值，可以通过命令行参数覆盖
-DEFAULT_RESULTS_FILE = "results.json"
+DEFAULT_RESULTS_FILE = "results_merged_ha.json"
 DEFAULT_MODEL = "google/gemini-2.5-flash"  # 默认使用高性价比模型
 
 
@@ -96,14 +99,14 @@ def generate_config_template(config_file_path: str, task_name: str, brand_counts
 def main():
     # --- 1. 命令行参数解析 ---
     parser = argparse.ArgumentParser(description="最终品牌探索引擎 (v4.0 - 按任务隔离版)。")
-    parser.add_argument("--task", required=True, help="定义本次分析任务的唯一名称 (例如: smart_hardware)。")
-    parser.add_argument("--category_prefix", required=True, help="用于筛选数据的分类名前缀 (例如: '智能硬件-')。")
+    parser.add_argument("--task", required=True, help="定义本次分析任务的唯一名称 (例如: home_appliance)。")
+    parser.add_argument("--category_prefix", required=True, help="用于筛选数据的分类名前缀 (例如: '家用电器-')。")
     parser.add_argument("--results_file", default=DEFAULT_RESULTS_FILE, help="包含所有原始数据的JSON文件。")
     parser.add_argument("--model", default=DEFAULT_MODEL, help="用于品牌提取的LLM模型ID。")
     args = parser.parse_args()
 
     # --- 2. 设置API客户端 ---
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         print("错误: 请先设置环境变量 'OPENROUTER_API_KEY'。")
         return

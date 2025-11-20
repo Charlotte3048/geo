@@ -13,7 +13,7 @@ import glob
 # --- 配置 ---
 # 使用 glob 模式匹配所有需要合并的文件
 # 我们假设旧的GPT结果在 'results.json'，新结果在 'results_ha_*.json'
-FILES_TO_MERGE = glob.glob("results_ha_*.json") + ["results.json"]
+FILES_TO_MERGE = glob.glob("results_ha_*.json")
 
 # 定义合并后输出的文件名
 MERGED_OUTPUT_FILE = "results_merged_ha.json"
