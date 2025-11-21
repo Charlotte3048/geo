@@ -17,14 +17,14 @@ import time
 # ==============================================================================
 
 # --- 全局函数 ---
-def normalize_score(value, max_value, min_value=0, scale=100):
-    """将一个值标准化到指定的范围 (e.g., 0-100)"""
-    if max_value == min_value:
-        return scale if value > 0 else 0
-    # 线性归一化，确保分数分布更均匀
-    if value <= min_value: return 0
-    if value >= max_value: return scale
-    return ((value - min_value) / (max_value - min_value)) * scale
+# def normalize_score(value, max_value, min_value=0, scale=100):
+#     """将一个值标准化到指定的范围 (e.g., 0-100)"""
+#     if max_value == min_value:
+#         return scale if value > 0 else 0
+#     # 线性归一化，确保分数分布更均匀
+#     if value <= min_value: return 0
+#     if value >= max_value: return scale
+#     return ((value - min_value) / (max_value - min_value)) * scale
 
 
 def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
@@ -91,9 +91,9 @@ def calculate_scores_for_group(data_group: list, brand_dictionary: dict, whiteli
     max_refs = max((m["total_ref_count"] for m in all_brands_raw_metrics.values()), default=0)
 
     # 计算所有品牌中，总提及次数的归一化最大值，用于 mind_share 的 100 分缩放
-    # max_mind_share_ratio = max(
-    #     (m["total_mentions"] / total_brand_mentions_across_all for m in all_brands_raw_metrics.values() if
-    #      total_brand_mentions_across_all > 0), default=0)
+    max_mind_share_ratio = max(
+        (m["total_mentions"] / total_brand_mentions_across_all for m in all_brands_raw_metrics.values() if
+         total_brand_mentions_across_all > 0), default=0)
 
     for brand, metrics in all_brands_raw_metrics.items():
         scores = {}
@@ -102,92 +102,98 @@ def calculate_scores_for_group(data_group: list, brand_dictionary: dict, whiteli
             'inf')
 
         # 严格按照权重计算六大维度的得分
-        # 1. 可见度 (20分) - 越靠前分越高，使用对数使其更平滑
-        # 使用一个基准位置（例如前100个字符）来给高分
-        if avg_pos < 500:
-            scores["visibility"] = weights["visibility"]
-        elif avg_pos < 1000:
-            scores["visibility"] = weights["visibility"] * 0.5
+        # --- 计算六大维度 100 分制小分 ---
+        # --- 计算六大维度 100 分制小分 ---
+        # 1. 品牌可见度 (Visibility) - 实体首次出现的位置越靠前，得分越高。
+        # 满分 100 分。使用一个基准位置（例如前 500 个字符）来给高分。
+        if avg_pos == float('inf'):
+            score_visibility = 0
+        elif avg_pos < 500:
+            score_visibility = 100
+        elif avg_pos < 1500:
+            score_visibility = 100 * (1 - (avg_pos - 500) / 1000)  # 线性递减
         else:
-            scores["visibility"] = 0
-        # 简单的负分机制，如果一次都没在前面出现过
+            score_visibility = 0
 
-        # 2. 引用率 (20分)
-        scores["mention_rate"] = normalize_score(metrics["total_mentions"], max_mentions, scale=weights["mention_rate"])
+        # 2. 引用率 (Mention Rate) - 实体被提及的总次数。
+        # 满分 100 分。
+        score_mention_rate = (metrics["total_mentions"] / max_mentions) * 100 if max_mentions > 0 else 0
 
-        # 3. AI推荐度 (20分)
-        scores["ai_ranking"] = normalize_score(metrics["strong_recommend_count"], max_strong,
-                                               scale=weights["ai_ranking"])
+        # 3. AI认知排行指数 (AI Ranking) - 基于强推荐次数。
+        # 满分 100 分。使用平方根缩放，使分数分布更平滑。
+        # 修正：为了避免大量 0 分，使用 (强推荐次数 + 1) / (最大强推荐次数 + 1) 进行归一化。
+        normalized_strong = (metrics["strong_recommend_count"] + 1) / (max_strong + 1)
+        score_ai_ranking = math.sqrt(normalized_strong) * 100
 
-        # 4. 引用深度 (15分)
-        scores["ref_depth"] = normalize_score(metrics["total_ref_count"], max_refs, scale=weights["ref_depth"])
+        # 4. 正文引用率 (Ref Depth) - 实体在正文中被引用的深度（如是否出现在核心段落、是否有详细描述）。
+        # 满分 100 分。
+        score_ref_depth = (metrics["total_ref_count"] / max_refs) * 100 if max_refs > 0 else 0
 
-        # 5. 认知份额 (15分) - 绝对比例
-        mind_share_ratio = metrics[
-                               "total_mentions"] / total_brand_mentions_across_all if total_brand_mentions_across_all > 0 else 0
-        scores["mind_share"] = mind_share_ratio * weights["mind_share"]
+        # 5. AI认知份额 (Mind Share) - 该实体提及次数占所有同类实体总数的比例。
+        # 满分 100 分。直接使用比例乘以 100。
+        normalized_mind_share = (metrics[
+                                     "total_mentions"] / total_brand_mentions_across_all) if total_brand_mentions_across_all > 0 else 0
+        score_mind_share = math.sqrt(normalized_mind_share) * 100
+        # 6. 竞争力指数 (Competitiveness) - 品牌与其竞品的在AI认知中综合竞争力。
+        # 满分 100 分。使用前三个核心指标的平均分作为基础。
+        core_scores_avg = (score_visibility + score_mention_rate + score_ai_ranking) / 3
+        score_competitiveness = core_scores_avg  # 简化处理，直接使用核心指标平均分作为竞争力指数
 
-        # 6. 竞争力指数 (10分) - 严格按比例
-        comp_weights = weights["visibility"] + weights["mention_rate"] + weights["ai_ranking"]
-        comp_score_sum = scores["visibility"] + scores["mention_rate"] + scores["ai_ranking"]
-        comp_score_avg_ratio = comp_score_sum / comp_weights if comp_weights > 0 else 0
-        scores["competitiveness"] = comp_score_avg_ratio * weights["competitiveness"]
+        # --- 计算加权总分 ---
+        total_score = (score_visibility * weights["visibility"] +
+                       score_mention_rate * weights["mention_rate"] +
+                       score_ai_ranking * weights["ai_ranking"] +
+                       score_ref_depth * weights["ref_depth"] +
+                       score_mind_share * weights["mind_share"] +
+                       score_competitiveness * weights["competitiveness"]) / 100  # 除以 100 是因为权重总和为 100
 
-        total_score = sum(scores.values())
-
-        # --- 计算100分比例缩放的维度得分 (原始得分 / 权重 * 100) ---
-        scaled_scores = {}
-        # 可见度 (20分)
-        scaled_scores["visibility"] = scores["visibility"] / weights["visibility"] * 100 if weights[
-                                                                                                "visibility"] > 0 else 0
-        # 引用率 (20分)
-        scaled_scores["mention_rate"] = scores["mention_rate"] / weights["mention_rate"] * 100 if weights[
-                                                                                                      "mention_rate"] > 0 else 0
-        # AI推荐度 (20分)
-        scaled_scores["ai_ranking"] = scores["ai_ranking"] / weights["ai_ranking"] * 100 if weights[
-                                                                                                "ai_ranking"] > 0 else 0
-        # 引用深度 (15分)
-        scaled_scores["ref_depth"] = scores["ref_depth"] / weights["ref_depth"] * 100 if weights["ref_depth"] > 0 else 0
-        # 认知份额 (15分) - 这里的 mind_share 已经是比例，需要用 max_mind_share_ratio 来归一化到 100
-        # 注意：mind_share 的原始得分是 mind_share_ratio * weights["mind_share"]
-        scaled_scores["mind_share"] = scores["mind_share"] / weights["mind_share"] * 100 if weights[
-                                                                                                "mind_share"] > 0 else 0
-        # 竞争力指数 (10分)
-        scaled_scores["competitiveness"] = scores["competitiveness"] / weights["competitiveness"] * 100 if weights[
-                                                                                                               "competitiveness"] > 0 else 0
-        # -----------------------------------
-
+        # --- 组织最终结果 ---
         final_scores[brand] = {
-            "品牌指数": total_score + 10,
+            "品牌指数": total_score,  # 品牌指数即为加权总分
             "总提及次数": metrics["total_mentions"],
             "出现次数": metrics["mention_in_answers"],
-            "维度得分": scaled_scores  # 新增维度得分
+            "维度得分": {
+                "visibility": score_visibility,
+                "mention_rate": score_mention_rate,
+                "ai_ranking": score_ai_ranking,
+                "ref_depth": score_ref_depth,
+                "mind_share": score_mind_share,
+                "competitiveness": score_competitiveness
+            }
         }
     return final_scores
 
 
 # --- 报告生成与主执行函数 (修改表格输出) ---
-def write_ranking_table(file_handle, title: str, scores: dict):
+def write_ranking_table(file_handle, title: str, scores: dict, is_total_ranking: bool = False):
     file_handle.write(f"## {title}\n\n")
     if not scores:
         file_handle.write("该品类下无品牌得分。\n\n")
         return
 
     # 新增维度得分的表头
-    header = "| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 | 可见度(20) | 引用率(20) | 推荐度(20) | 引用深度(15) | 认知份额(15) | 竞争力(10) |\n"
-    separator = "|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n"
+    if is_total_ranking:
+        header = "| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 | 品牌可见度(20) | 引用率(20) | 品牌AI认知排行指数(20) | 正文引用率(15) | 品牌AI认知份额(15) | 竞争力指数(10) |\n"
+        separator = "|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n"
+    else:
+        header = "| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 |\n"
+        separator = "|:---:|:---|:---:|:---:|:---:|\n"
     file_handle.write(header)
     file_handle.write(separator)
 
     sorted_brands = sorted(scores.items(), key=lambda x: x[1]["品牌指数"], reverse=True)
 
     for rank, (brand, scores_data) in enumerate(sorted_brands, 1):
-        dims = scores_data["维度得分"]
-        row = (
-            f"| {rank} | {brand} | **{scores_data['品牌指数']:.2f}** | {scores_data['总提及次数']} | {scores_data['出现次数']} | "
-            f"{dims['visibility']:.1f} | {dims['mention_rate']:.1f} | {dims['ai_ranking']:.1f} | "
-            f"{dims['ref_depth']:.1f} | {dims['mind_share']:.1f} | {dims['competitiveness']:.1f} |\n"
-        )
+        row_base = f"| {rank} | {brand} | **{scores_data['品牌指数']:.2f}** | {scores_data['总提及次数']} | {scores_data['出现次数']} |"
+        if is_total_ranking:
+            dims = scores_data["维度得分"]
+            row = (
+                f"{row_base} "
+                f"{dims['visibility']:.1f} | {dims['mention_rate']:.1f} | {dims['ai_ranking']:.1f} | "
+                f"{dims['ref_depth']:.1f} | {dims['mind_share']:.1f} | {dims['competitiveness']:.1f} |\n"
+            )
+        else:
+            row = f"{row_base}\n"
         file_handle.write(row)
     file_handle.write("\n")
 
@@ -199,27 +205,8 @@ def run_analysis(config: dict):
     BRAND_DICTIONARY = config['brand_dictionary']
     CHINESE_BRANDS_WHITELIST = set(config['chinese_brands_whitelist'])
     WEIGHTS = config['weights']
-
-    # --- 新增品类白名单 ---
-    # 根据用户提供的运行结果，筛选出属于“家用电器”的品类
-    WHITELISTED_CATEGORIES = [
-        '电视机与显示器',
-        '空调',
-        '冰箱与冷柜',
-        '洗衣机',
-        '小家电(厨房清洁)',
-        '音频视频设备'  # 暂时保留，如果需要更严格的家电定义，可以移除
-        #
-        # '3D打印机',
-        # '便携储能电源',
-        # '无人机',
-        # '智能安防',
-        # '智能穿戴设备',
-        # '服务机器人'
-
-    ]
-
-    # ----------------------
+    # 从配置文件中读取品类白名单，如果不存在则默认为空列表
+    WHITELISTED_CATEGORIES = config.get('whitelisted_categories', [])
 
     print(f"--- 开始分析任务: {config['task_name']} ---")
     try:
@@ -229,20 +216,25 @@ def run_analysis(config: dict):
         print(f"错误: 数据文件 '{RESULTS_FILE}' 未找到。")
         return
 
-    # 1. 过滤数据，只保留白名单中的品类
-    filtered_data = []
-    for item in all_data:
-        category_name = item.get('category', '未分类').split('-')[-1]
-        if category_name in WHITELISTED_CATEGORIES:
-            filtered_data.append(item)
+    # 1. 过滤数据，只保留白名单中的品类 (如果白名单为空，则不过滤)
+    if WHITELISTED_CATEGORIES:
+        filtered_data = []
+        for item in all_data:
+            category_name = item.get('category', '未分类').split('-')[-1]
+            if category_name in WHITELISTED_CATEGORIES:
+                filtered_data.append(item)
+        print(f"数据加载完成，已根据白名单过滤出 {len(filtered_data)} 条记录。")
+    else:
+        filtered_data = all_data
+        print(f"数据加载完成，未设置品类白名单，使用全部 {len(filtered_data)} 条记录。")
 
-    # 2. 重新分组（只包含白名单品类）
+    # 2. 重新分组
     grouped_data = defaultdict(list)
     for item in filtered_data:
         category_name = item.get('category', '未分类').split('-')[-1]
         grouped_data[category_name].append(item)
 
-    print(f"数据加载完成，共发现 {len(grouped_data)} 个子品类。")
+    print(f"共发现 {len(grouped_data)} 个子品类。")
 
     with open(RANKING_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         f.write(f"{REPORT_TITLE}\n\n")
@@ -251,14 +243,14 @@ def run_analysis(config: dict):
         print("正在计算总榜单...")
         # 使用过滤后的数据计算总榜单
         total_scores = calculate_scores_for_group(filtered_data, BRAND_DICTIONARY, CHINESE_BRANDS_WHITELIST, WEIGHTS)
-        write_ranking_table(f, "⭐ 总榜单 (综合排名) ⭐", total_scores)
+        write_ranking_table(f, "⭐ 智能硬件总榜单 (综合排名) ⭐", total_scores, is_total_ranking=True)
 
         print("正在计算各子品类分榜单...")
         for category, data_group in sorted(grouped_data.items()):
             print(f"  - 正在处理品类: {category} ({len(data_group)}个问题)")
             category_scores = calculate_scores_for_group(data_group, BRAND_DICTIONARY, CHINESE_BRANDS_WHITELIST,
                                                          WEIGHTS)
-            write_ranking_table(f, f"品类: {category}", category_scores)
+            write_ranking_table(f, f"品类: {category}", category_scores, is_total_ranking=False)
 
     print(f"分析全部完成！基于绝对权重的完整报告已保存到 '{RANKING_OUTPUT_FILE}'。")
 
@@ -276,3 +268,6 @@ if __name__ == "__main__":
         print(f"错误: 配置文件 '{args.config}' 未找到。请检查文件名或路径。")
     except Exception as e:
         print(f"加载或执行时发生错误: {e}")
+
+
+
