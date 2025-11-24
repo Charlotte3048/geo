@@ -14,9 +14,6 @@ from wsgiref.handlers import format_date_time
 
 import websocket  # 使用websocket_client
 
-answer = ""
-sid = ''
-
 
 class Ws_Param(object):
     # 初始化
@@ -57,41 +54,41 @@ class Ws_Param(object):
         }
         # 拼接鉴权参数，生成url
         url = self.Spark_url + '?' + urlencode(v)
-        # print(url)
-        # 此处打印出建立连接时候的url,参考本demo的时候可取消上方打印的注释，比对相同参数时生成的url与自己代码生成的url是否一致
         return url
 
 
-# 将全局变量 answer 封装到类或函数中
 class SparkSyncClient:
     def __init__(self):
         self.answer = ""
         self.sid = ""
 
     def on_message(self, ws, message):
-        # ... (on_message 逻辑，将 content 累加到 self.answer)
+        """处理 WebSocket 消息"""
         data = json.loads(message)
         code = data['header']['code']
         if code != 0:
-            # ... 错误处理
+            print("=== 星火返回错误 ===")
+            print(json.dumps(data, ensure_ascii=False, indent=2))
             ws.close()
-        else:
-            choices = data["payload"]["choices"]
-            status = choices["status"]
-            content = choices["text"][0]["content"]
-            self.answer += content
-            if status == 2:
-                ws.close()
+            return
 
-    # ... (保留 on_error, on_close, on_open, run, gen_params)
+        choices = data["payload"]["choices"]
+        status = choices["status"]
+        content = choices["text"][0]["content"]
+        self.answer += content
+
+        # status == 2 表示最后一条消息
+        if status == 2:
+            ws.close()
 
     def chat(self, appid, api_key, api_secret, Spark_url, domain, question):
+        """同步调用星火 API"""
         self.answer = ""  # 重置答案
         wsParam = Ws_Param(appid, api_key, api_secret, Spark_url)
         websocket.enableTrace(False)
         wsUrl = wsParam.create_url()
 
-        # 关键：将 on_message 绑定到实例方法
+        # 绑定实例方法
         ws = websocket.WebSocketApp(
             wsUrl,
             on_message=self.on_message,
@@ -105,7 +102,7 @@ class SparkSyncClient:
         ws.question = question
         ws.domain = domain
 
-        # 运行并阻塞，直到 ws.close() 被调用
+        # 运行并阻塞
         ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
 
         return self.answer
@@ -113,12 +110,12 @@ class SparkSyncClient:
 
 # 收到websocket错误的处理
 def on_error(ws, error):
-    print("### error:", error)
+    print("### Spark WebSocket error:", error)
 
 
 # 收到websocket关闭的处理
 def on_close(ws, one, two):
-    print(" ")
+    pass  # 静默关闭
 
 
 # 收到websocket连接建立的处理
@@ -127,64 +124,43 @@ def on_open(ws):
 
 
 def run(ws, *args):
+    """发送请求数据"""
     data = json.dumps(gen_params(appid=ws.appid, domain=ws.domain, question=ws.question))
     ws.send(data)
-
-
-# 收到websocket消息的处理
-def on_message(self, ws, message):
-    data = json.loads(message)
-    code = data['header']['code']
-    if code != 0:
-        print("=== 星火返回错误 ===")
-        print(json.dumps(data, ensure_ascii=False, indent=2))
-        ws.close()
-        return
-
-    choices = data["payload"]["choices"]
-    status = choices["status"]
-    content = choices["text"][0]["content"]
-    self.answer += content
-    if status == 2:
-        ws.close()
-
 
 
 def gen_params(appid, domain, question):
     """
     通过appid和用户的提问来生成请参数
     """
+    # ⭐ 关键修改：将 question 转换为消息数组格式
+    if isinstance(question, str):
+        # 如果是字符串，转换为消息数组
+        messages = [
+            {"role": "user", "content": question}
+        ]
+    else:
+        # 如果已经是数组，直接使用
+        messages = question
+
     data = {
         "header": {
             "app_id": appid,
             "uid": "1234"
         },
         "parameter": {
-
             "chat": {
                 "domain": domain,
                 "temperature": 0.8,
                 "max_tokens": 2048,
                 "top_k": 5,
-
                 "auditing": "default"
             }
         },
         "payload": {
             "message": {
-                "text": question
+                "text": messages  # ← 改为数组
             }
         }
     }
     return data
-
-
-def main(appid, api_key, api_secret, Spark_url, domain, question):
-    wsParam = Ws_Param(appid, api_key, api_secret, Spark_url)
-    websocket.enableTrace(False)
-    wsUrl = wsParam.create_url()
-    ws = websocket.WebSocketApp(wsUrl, on_message=on_message, on_error=on_error, on_close=on_close, on_open=on_open)
-    ws.appid = appid
-    ws.question = question
-    ws.domain = domain
-    ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})

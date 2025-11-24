@@ -15,11 +15,6 @@ from openai import RateLimitError, APIError
 from tencentcloud.common import credential
 from tencentcloud.hunyuan.v20230901 import hunyuan_client, models as hunyuan_models
 
-# 科大讯飞星火 SDK (请根据实际库名调整，这里假设是 spark_ai_python)
-# 由于星火的调用通常涉及异步和签名，这里提供一个基于常见同步模式的框架
-# 实际使用时，可能需要参考官方文档调整
-# from spark_ai_python import SparkClient # 假设的导入，如果不对请修改
-
 # 假设您的项目根目录是 GEO
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -109,25 +104,25 @@ def call_openai_compatible_api(model_config, question):
             }
         }
         return result
-
+    except RateLimitError as e:
+        # 速率限制错误，直接重新抛出让 tenacity 重试
+        raise
 
     except APIError as e:
-        # 如果是速率限制错误，抛出 RateLimitError
-        if e.status_code == 429:
-            # 关键修改：从原始错误对象中获取 body，并正确构造 RateLimitError
-            # e.response.text 包含原始的 JSON 响应体
+        # API 错误（有状态码）
+        if hasattr(e, 'status_code') and e.status_code == 429:
+            # 如果是429但没被识别为RateLimitError，手动抛出
             raise RateLimitError(
                 message=f"Rate limit hit for {model_config['name']}",
                 response=e.response,
-                body=e.response.text  # 传递 body 参数
+                body=e.response.text if hasattr(e, 'response') else None
             )
-
-        # 其他 API 错误，正常处理
         print(f"  -> API Error for {model_config['name']}: {e}")
         return None
-        return None
+
     except Exception as e:
-        print(f"  -> An unexpected error occurred for {model_config['name']}: {e}")
+        # 其他所有异常（包括 APIConnectionError）
+        print(f"  -> Connection/Unexpected error for {model_config['name']}: {e}")
         return None
 
 
@@ -140,17 +135,16 @@ def call_spark_api(model_config, question):
         api_key = os.getenv(model_config['api_key_env'])
         api_secret = os.getenv(model_config['secret_key_env'])
         app_id = os.getenv(model_config['app_id_env'])
-        # 注意这里，取决于你 config 里 base_url 是不是写在 env 里
-        spark_url = os.getenv(model_config['base_url'])  # 如果写的是 ENV 名
-        # 或者如果 config 里直接就是 URL，就用：
-        # spark_url = model_config['base_url']
+
+        # ⭐ 关键修改：直接使用配置中的 URL，而不是从环境变量读取
+        spark_url = model_config['base_url']  # 直接使用配置中的 URL
 
         if not api_key or not api_secret or not app_id or not spark_url:
             print(f"  -> Error: Key/Secret/AppID/URL for {model_config['name']} not found.")
             return None
 
         client = SparkSyncClient()
-        domain = model_config['model']  # 比如 generalv3.5
+        domain = model_config['model']  # 比如 spark-x1.5
 
         print(f"  -> Calling {model_config['name']} ({domain})...")
 
@@ -163,7 +157,7 @@ def call_spark_api(model_config, question):
             question=question['prompt']
         )
 
-        # ⭐ 关键：像其他模型一样构造统一的返回结构
+        # 关键：像其他模型一样构造统一的返回结构
         result = {
             "category": question['category'],
             "question_id": question['id'],

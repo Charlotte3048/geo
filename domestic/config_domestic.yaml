@@ -23,9 +23,10 @@ models:
 
   kimi:
     name: "Kimi"
-    model: "Moonshot-Kimi-K2-Instruct" # 使用您提供的模型名称
     api_key_env: "KIMI_API_KEY"
-    base_url: "KIMI_API_URL" # 阿里云兼容模式 URL
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: "Moonshot-Kimi-K2-Instruct"  # ← 确认这个
+
 
   zhipu:
     name: "智谱 GLM"
@@ -37,7 +38,7 @@ models:
 #    name: "文心一言"
 #    model: "ernie-x1.1-preview"
 #    api_key_env: "WENXIN_API_KEY"
-#    base_url: "https://qianfan.baidubce.com/v2" # 修正：文心一言的 Base URL
+#    base_url: "https://qianfan.baidubce.com/v2"
 
   # --- 需要单独适配的模型 ---
   hunyuan:
@@ -49,11 +50,11 @@ models:
 
   spark:
     name: "科大讯飞星火"
-    model: "spark-x1.5"
+    model: "lite"
     api_key_env: "SPARK_API_KEY"
     secret_key_env: "SPARK_SECRET_KEY" # 新增 Secret Key 字段
     app_id_env: "SPARK_APP_ID" # 新增 App ID 字段
-    base_url: "SPARK_BASE_URL" # 星火需要一个 Base URL ，但调用方式不同
+    base_url: "wss://spark-api.xf-yun.com/v1.1/chat" # 星火需要一个 Base URL ，但调用方式不同
 
   # pangu:
   #   name: "华为盘古"

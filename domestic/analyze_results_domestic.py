@@ -142,7 +142,7 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
                               score_ref_depth * weights["ref_depth"] +
                               score_mind_share * weights["mind_share"] +
                               score_competitiveness * weights["competitiveness"]
-                      ) / 100  # 除以100是因为权重总和为100
+                      ) / 100 + 10  # 除以100是因为权重总和为100
 
         final_scores[brand] = {
             "品牌指数": total_score,
@@ -178,7 +178,7 @@ def write_ranking_report(output_file: str, title: str, scores: dict, task_name: 
         # 总榜单表格
         f.write("## 📊 品牌排名总榜单\n\n")
         f.write(
-            "| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 | 强推荐次数 | 品牌可见度(20) | 引用率(20) | AI认知排行(20) | 提及密度(15) | 认知份额(15) | 竞争力(10) |\n")
+            "| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 | 强推荐次数 | 品牌可见度(20) | 引用率(20) | 品牌AI认知排行指数(20) | 正文引用率(15) | 品牌AI认知份额(15) | 竞争力指数(10) |\n")
         f.write("|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n")
 
         sorted_brands = sorted(scores.items(), key=lambda x: x[1]["品牌指数"], reverse=True)
@@ -209,14 +209,14 @@ def write_ranking_report(output_file: str, title: str, scores: dict, task_name: 
         f.write("1. **品牌可见度 (20%)**: 品牌首次出现的位置越靠前，得分越高\n")
         f.write("2. **引用率 (20%)**: 品牌被提及的总次数\n")
         f.write("3. **AI认知排行指数 (20%)**: 基于强推荐次数的评分\n")
-        f.write("4. **提及密度 (15%)**: 品牌在每次出现时的平均提及次数，反映讨论深度\n")
-        f.write("5. **认知份额 (15%)**: 品牌提及次数占所有品牌总数的比例\n")
+        f.write("4. **正文引用率 (15%)**: 品牌在每次出现时的平均提及次数，反映讨论深度\n")
+        f.write("5. **AI认知份额 (15%)**: 品牌提及次数占所有品牌总数的比例\n")
         f.write("6. **竞争力指数 (10%)**: 前三个核心指标的综合评分\n")
         f.write("\n")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="国内榜单分析引擎 (简化版)")
+    parser = argparse.ArgumentParser(description="国内榜单分析引擎")
     parser.add_argument("--task", required=True, help="任务名称 (例如: nev, scenic)")
     parser.add_argument("--results", required=True, help="结果文件路径 (例如: results_nev_merged.json)")
     parser.add_argument("--brands", required=True, help="品牌词典文件路径 (例如: brand_dictionary_nev.yaml)")
