@@ -16,7 +16,7 @@ import glob
 FILES_TO_MERGE = glob.glob("results_ha_*.json")
 
 # 定义合并后输出的文件名
-MERGED_OUTPUT_FILE = "results_merged_ha.json"
+MERGED_OUTPUT_FILE = "oversea/results_merged_ha.json"
 
 
 def main():

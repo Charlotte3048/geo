@@ -1,0 +1,79 @@
+# --- 模型配置 ---
+# 注意：api_key_env 对应 .env 文件中的变量名
+# base_url 对应模型的 API 地址
+
+models:
+  doubao:
+    name: "豆包"
+    model: "doubao-seed-1-6-250615"
+    api_key_env: "DOUBAO_API_KEY"
+    base_url: "https://ark.cn-beijing.volces.com/api/v3" # 修正：OpenAI 兼容接口通常只需要到 /v3
+
+  qwen:
+    name: "通义千问"
+    model: "qwen-plus" # 使用您提供的模型名称
+    api_key_env: "QWEN_API_KEY"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
+
+  deepseek:
+    name: "DeepSeek"
+    model: "deepseek-r1" # 使用您提供的模型名称
+    api_key_env: "DEEPSEEK_API_KEY"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
+
+  kimi:
+    name: "Kimi"
+    model: "Moonshot-Kimi-K2-Instruct" # 使用您提供的模型名称
+    api_key_env: "KIMI_API_KEY"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
+
+  zhipu:
+    name: "智谱 GLM"
+    model: "glm-4.5-air" # 使用您提供的模型名称
+    api_key_env: "ZHIPU_API_KEY"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL2
+
+#  wenxin:
+#    name: "文心一言"
+#    model: "ernie-x1.1-preview"
+#    api_key_env: "WENXIN_API_KEY"
+#    base_url: "https://qianfan.baidubce.com/v2" # 修正：文心一言的 Base URL
+
+  # --- 需要单独适配的模型 ---
+  hunyuan:
+    name: "腾讯混元"
+    model: "hunyuan-pro"
+    api_key_env: "HUNYUAN_API_KEY"
+    secret_key_env: "HUNYUAN_SECRET_KEY" # 新增 Secret Key 字段
+    base_url: "https://api.hunyuan.cloud.tencent.com/v1"
+
+  spark:
+    name: "科大讯飞星火"
+    model: "spark-x1.5"
+    api_key_env: "SPARK_API_KEY"
+    secret_key_env: "SPARK_SECRET_KEY" # 新增 Secret Key 字段
+    app_id_env: "SPARK_APP_ID" # 新增 App ID 字段
+    base_url: "SPARK_BASE_URL" # 星火需要一个 Base URL ，但调用方式不同
+
+  # pangu:
+  #   name: "华为盘古"
+  #   model: "pangu-chat"
+  #   api_key_env: "PANGU_API_KEY"
+  #   base_url: "PANGU_BASE_URL" # 待您公测通过后添加
+
+# --- 文件路径配置 ---
+paths:
+  questions_file: "questions_domestic.json"
+  brand_dictionary_file: "brand_dictionary_domestic.yaml"
+  results_dir: "results"
+  merged_results_file: "results_merged_domestic.json"
+  ranking_output_file: "ranking_report_domestic.md"
+
+# --- 评分权重配置 (沿用出海榜单的权重) ---
+weights:
+  Brand Visibility: 0.20
+  Mention Rate: 0.20
+  AI Ranking Index: 0.20
+  Reference Depth: 0.15
+  Mind Share: 0.15
+  Competitiveness Index: 0.10

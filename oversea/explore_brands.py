@@ -19,6 +19,7 @@ import time
 
 # --- 配置 ---
 # 这些现在是默认值，可以通过命令行参数覆盖
+# oversea/results_merged_ha.json
 DEFAULT_RESULTS_FILE = "results_merged_ha.json"
 DEFAULT_MODEL = "google/gemini-2.5-flash"  # 默认使用高性价比模型
 
