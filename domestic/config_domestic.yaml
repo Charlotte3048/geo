@@ -25,7 +25,7 @@ models:
     name: "Kimi"
     model: "Moonshot-Kimi-K2-Instruct" # 使用您提供的模型名称
     api_key_env: "KIMI_API_KEY"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
+    base_url: "KIMI_API_URL" # 阿里云兼容模式 URL
 
   zhipu:
     name: "智谱 GLM"

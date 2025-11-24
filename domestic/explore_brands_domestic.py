@@ -11,6 +11,11 @@ from dotenv import load_dotenv  # 新增导入 dotenv
 # ==============================================================================
 # 国内榜单品牌探索引擎 (v1.0 - 针对已合并文件)
 # 描述: 直接分析已按品类合并的 JSON 文件，并生成品牌词典模板。
+# Moonshot-Kimi-K2-Instruct
+# export KIMI_API_KEY="sk-06829e4221f84e878e6a3f207d60aa8c"
+# export KIMI_API_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+# cd domestic
+# python explore_brands_domestic.py --task nev --results_file results_nev_merged.json
 # ==============================================================================
 
 # --- 配置 ---
@@ -19,9 +24,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'))
 
 # 建议使用 Kimi 或 DeepSeek 进行中文品牌提取，因为它们对中文支持较好
-DEFAULT_MODEL_NAME = "kimi"
+DEFAULT_MODEL_NAME = "Moonshot-Kimi-K2-Instruct"
 DEFAULT_MODEL_KEY_ENV = "KIMI_API_KEY"
-DEFAULT_MODEL_BASE_URL = "https://api.moonshot.cn/v1"  # Kimi 的 Base URL
+DEFAULT_MODEL_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+
+# Kimi 的 Base URL
 
 
 # --- 核心函数 ---
@@ -146,7 +154,7 @@ def main():
     for i, answer in enumerate(all_answers):
         print(f"正在处理回答 {i + 1}/{len(all_answers)}...")
         # 注意：这里使用 Kimi 的模型 ID
-        brands = get_brands_from_text_with_ai(client, answer, "moonshot-v1-8k")  # 假设 Kimi 的模型 ID 是 moonshot-v1-8k
+        brands = get_brands_from_text_with_ai(client, answer, "Moonshot-Kimi-K2-Instruct")
         if brands:
             all_extracted_brands.extend(brands)
         time.sleep(0.5)  # 轻微延迟以示友好
