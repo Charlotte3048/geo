@@ -16,6 +16,7 @@ from dotenv import load_dotenv  # 新增导入 dotenv
 # export KIMI_API_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 # cd domestic
 # python explore_brands_domestic.py --task nev --results_file results_nev_merged.json
+# python explore_brands_domestic.py --task scenic --results_file results_scenic_merged.json
 # ==============================================================================
 
 # --- 配置 ---
@@ -101,7 +102,7 @@ def generate_brand_dictionary_template(config_file_path: str, task_name: str, br
         f.write("  # Example: 蔚来: [蔚来, nio, 蔚来汽车]\n\n")
 
         f.write("# 步骤二: 定义品牌白名单 (仅使用标准键名)\n")
-        f.write("chinese_brands_whitelist:\n")
+        f.write("brands_whitelist:\n")
         for brand, count in Counter(filtered_brands).most_common():
             f.write(f"  - {brand}\n")
         f.write("\n  # --- 请在此处审核，只保留最终要分析的品牌/景区 ---\n")

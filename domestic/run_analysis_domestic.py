@@ -2,13 +2,13 @@ import os
 import json
 import yaml
 import argparse
-import time
-from openai import OpenAI, APIError
 from dotenv import load_dotenv
 from collections import defaultdict
 from SparkApi import SparkSyncClient
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from openai import RateLimitError, APIError
+import requests
+import qianfan
 
 # --- 导入特殊模型 SDK ---
 # 腾讯云 SDK
@@ -126,6 +126,11 @@ def call_openai_compatible_api(model_config, question):
         return None
 
 
+from openai import OpenAI
+import requests
+import json
+
+
 # --- 3. 科大讯飞星火模型调用 ---
 def call_spark_api(model_config, question):
     """
@@ -174,22 +179,19 @@ def call_spark_api(model_config, question):
         return None
 
 
-# --- 核心分派函数 ---
 def call_model(model_key, model_config, question):
     """
-    根据模型 key 分派到不同的 API 调用函数，并捕获重试后的最终异常
+    根据模型 key 分派到不同的 API 调用函数
     """
     try:
         if model_key == 'spark':
             return call_spark_api(model_config, question)
         else:
-            # 默认使用 OpenAI 兼容接口 (包括 hunyuan)
+            # 默认使用 OpenAI 兼容接口
             return call_openai_compatible_api(model_config, question)
     except Exception as e:
-        # 捕获所有异常，包括 tenacity 重试后的最终异常
         print(f"  -> FATAL ERROR for {model_config['name']} on QID {question['id']}: {e}")
-        print("  -> Skipping this model/question pair.")
-        return None  # 返回 None，让主循环继续
+        return None
 
 
 # ... (保持其他函数和导入不变)
@@ -260,7 +262,7 @@ def main():
                 model_results.append(result)
                 newly_collected_results.append(result)
 
-            time.sleep(5)  # 避免API调用过于频繁
+            # time.sleep(0.5)  # 避免API调用过于频繁
 
         # 如果有新采集的结果，则保存
         if newly_collected_results:
@@ -287,6 +289,10 @@ def main():
             file_suffix = "nev"
         elif category == "5A级景区":
             file_suffix = "scenic"
+        elif category == "智能手机":
+            file_suffix = "phone"
+        elif category == "餐饮美食":
+            file_suffix = "food"
         else:
             file_suffix = category.replace(" ", "_")
 

@@ -11,7 +11,8 @@ import time
 # ==============================================================================
 # 国内榜单分析引擎 (简化版 - 只生成总榜单)
 # 描述: 专门用于国内榜单分析，不分子品类，只生成一个总榜单
-# 用法: python analyze_results_domestic.py --task nev --results results_nev_merged.json --brands brand_dictionary_nev.yaml
+# 用法: python analyze_results_domestic.py --task scenic --results results_scenic_merged.json --brands brand_dictionary_scenic.yaml
+# python analyze_results_domestic.py --task nev --results results_nev_merged.json --brands brand_dictionary_nev.yaml
 # ==============================================================================
 
 
@@ -219,7 +220,7 @@ def main():
     parser = argparse.ArgumentParser(description="国内榜单分析引擎")
     parser.add_argument("--task", required=True, help="任务名称 (例如: nev, scenic)")
     parser.add_argument("--results", required=True, help="结果文件路径 (例如: results_nev_merged.json)")
-    parser.add_argument("--brands", required=True, help="品牌词典文件路径 (例如: brand_dictionary_nev.yaml)")
+    parser.add_argument("--brands", required=True, help="品牌词典文件路径 (例如: brand_dictionary_scenic.yaml)")
     parser.add_argument("--output", default=None, help="输出报告文件路径 (默认: ranking_report_{task}.md)")
     args = parser.parse_args()
 
