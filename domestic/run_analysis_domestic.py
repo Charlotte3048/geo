@@ -293,8 +293,16 @@ def main():
             file_suffix = "phone"
         elif category == "餐饮美食":
             file_suffix = "food"
+        elif category == "奢侈品":
+            file_suffix = "luxury"
+        elif category == "美妆护肤":
+            file_suffix = "beauty"
+        elif category == "零食饮料":
+            file_suffix = "snack"
+        elif category == "热门旅游城市":
+            file_suffix = "city"
         else:
-            file_suffix = category.replace(" ", "_")
+            file_suffix = "other"
 
         merged_output_path = os.path.join(BASE_DIR, f"results_{file_suffix}_merged.json")
 

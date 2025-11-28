@@ -17,6 +17,9 @@ from dotenv import load_dotenv  # 新增导入 dotenv
 # cd domestic
 # python explore_brands_domestic.py --task nev --results_file results_nev_merged.json
 # python explore_brands_domestic.py --task scenic --results_file results_scenic_merged.json
+# python explore_brands_domestic.py --task phone --results_file results_phone_merged.json
+# python explore_brands_domestic.py --task food --results_file results_food_merged.json
+
 # ==============================================================================
 
 # --- 配置 ---
@@ -28,9 +31,6 @@ load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'))
 DEFAULT_MODEL_NAME = "Moonshot-Kimi-K2-Instruct"
 DEFAULT_MODEL_KEY_ENV = "KIMI_API_KEY"
 DEFAULT_MODEL_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-
-
-# Kimi 的 Base URL
 
 
 # --- 核心函数 ---
@@ -157,10 +157,23 @@ def main():
         # 注意：这里使用 Kimi 的模型 ID
         brands = get_brands_from_text_with_ai(client, answer, "Moonshot-Kimi-K2-Instruct")
         if brands:
-            all_extracted_brands.extend(brands)
+            # 修复嵌套列表：逐个添加品牌，避免 brands 本身为列表导致嵌套
+            for b in brands:
+                if isinstance(b, list):
+                    all_extracted_brands.extend(b)
+                else:
+                    all_extracted_brands.append(b)
         time.sleep(0.5)  # 轻微延迟以示友好
 
-    brand_counts = Counter(all_extracted_brands)
+    # 修复: 扁平化列表，避免列表元素不可哈希
+    flat_brands = []
+    for item in all_extracted_brands:
+        if isinstance(item, list):
+            flat_brands.extend(item)
+        else:
+            flat_brands.append(item)
+
+    brand_counts = Counter(flat_brands)
     print(f"\n提取完成！共发现 {len(brand_counts)} 个独特的候选品牌。")
 
     # --- 5. 生成隔离的输出文件 ---

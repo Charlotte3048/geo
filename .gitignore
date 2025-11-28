@@ -2,7 +2,7 @@
 .env
 
 # 忽略大型数据文件和结果文件
-results.json
+oversea/results.json
 confirmed_brands.txt
 candidate_brands_cleaned.txt
 

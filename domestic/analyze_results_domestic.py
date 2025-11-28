@@ -13,6 +13,8 @@ import time
 # 描述: 专门用于国内榜单分析，不分子品类，只生成一个总榜单
 # 用法: python analyze_results_domestic.py --task scenic --results results_scenic_merged.json --brands brand_dictionary_scenic.yaml
 # python analyze_results_domestic.py --task nev --results results_nev_merged.json --brands brand_dictionary_nev.yaml
+# python analyze_results_domestic.py --task phone --results results_phone_merged.json --brands brand_dictionary_phone.yaml
+# python analyze_results_domestic.py --task food --results results_food_merged.json --brands brand_dictionary_food.yaml
 # ==============================================================================
 
 
