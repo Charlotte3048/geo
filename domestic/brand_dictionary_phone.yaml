@@ -1,0 +1,75 @@
+# Phone 品类品牌词典模板
+# ========================================================
+# 自动生成于: 2025-11-27 17:54:53
+# 请仔细审核和完善此文件，特别是品牌别名 (Alias)。
+
+brand_dictionary:
+  小米: [ 小米, xiaomi]
+  Redmi: [redmi, 红米]
+  三星: [ 三星, samsung, sumsung, galaxy, 三星galaxy ]
+  华为: [ 华为, huawei, mate, pura ]
+  苹果: [ 苹果, iphone, apple ]
+  OPPO: [ oppo ]
+  vivo: [ vivo ]
+  荣耀: [ 荣耀 ]
+  一加: [ 一加, oneplus ]
+  iQOO: [ iqoo ]   # vivo子品牌但通常视为独立品牌，故保留
+  realme: [ realme, 真我 ]
+  Google: [ google, 谷歌, pixel, google pixel ]
+  摩托罗拉: [ 摩托罗拉, motorola, moto ]
+  华硕: [ 华硕, asus ]
+  Fairphone: [ fairphone ]
+  诺基亚: [ 诺基亚, nokia, hmd global ]
+  Nothing Phone: [ nothing phone, nothing ]
+  黑鲨: [ 黑鲨 ]
+  红魔: [ 红魔 ]
+  努比亚: [ 努比亚 ]
+  Ulefone: [ ulefone ]
+  AGM: [ agm ]
+  CAT: [ cat ]
+  ROG: [ rog ]  # 属于华硕，但多作为独立子品牌存在 → 保留
+  Microsoft: [ 微软, microsoft ]  # 微软虽非主流手机厂商，但 Lumia / Surface Duo属该品牌 → 保留
+  Xperia: [ xperia, sony xperia ]  # 归属索尼
+  索尼: [ 索尼, sony ]
+  Blackview: [ blackview ]
+  魅族: [ 魅族 ]
+  天语: [ 天语 ]
+  金立: [ 金立 ]
+  中兴: [ 中兴 ]
+
+
+  # --- 请在此处手动添加或合并别名 ---
+  # Example: 蔚来: [蔚来, nio, 蔚来汽车]
+
+# 步骤二: 定义品牌白名单 (仅使用标准键名)
+brands_whitelist:
+  - 小米
+  - 红米
+  - 三星
+  - 华为
+  - 苹果
+  - OPPO
+  - vivo
+  - 荣耀
+  - 一加
+  - iQOO
+  - realme
+  - 摩托罗拉
+  - 华硕
+  - Fairphone
+  - 诺基亚
+  - Nothing Phone
+  - 黑鲨
+  - 红魔
+  - 努比亚
+  - Ulefone
+  - AGM
+  - CAT
+  - ROG
+  - Xperia
+  - 索尼
+  - Blackview
+  - 魅族
+  - 天语
+  - 金立
+  - 中兴

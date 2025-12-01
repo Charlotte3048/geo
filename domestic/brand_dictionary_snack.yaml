@@ -1,0 +1,322 @@
+# Snack 品类品牌词典模板
+# ========================================================
+# 自动生成于: 2025-11-28 17:16:20
+# 请仔细审核和完善此文件，特别是品牌别名 (Alias)。
+
+brand_dictionary:
+  农夫山泉: [ 农夫山泉 ]
+  三得利: [ 三得利 ]
+  元气森林: [ 元气森林 ]
+  三只松鼠: [ 三只松鼠 ]
+  良品铺子: [ 良品铺子 ]
+  明治: [ 明治 ]
+  喜茶: [ 喜茶 ]
+  伊藤园: [ 伊藤园 ]
+  东方树叶: [ 东方树叶 ]
+  伊利: [ 伊利, 伊利金典, 金典 ]
+  巴黎水: [ 巴黎水, Perrier ]
+  统一: [ 统一 ]
+  可口可乐: [ 可口可乐, Coca-Cola, Coke ]
+  百草味: [ 百草味 ]
+  桂格: [ 桂格, Quaker, 桂格燕麦 ]
+  Oatly: [ Oatly, oatly, OATLY ]
+  乐事: [ 乐事, Lay's ]
+  星巴克: [ 星巴克, Starbucks ]
+  光明: [ 光明, 光明优倍 ]
+  维他奶: [ 维他奶, Vitasoy ]
+  好丽友: [ 好丽友, Orion ]
+  简爱: [ 简爱 ]
+  乐纯: [ 乐纯 ]
+  雀巢: [ 雀巢, Nestle ]
+  沃隆: [ 沃隆 ]
+  卡乐比: [ 卡乐比, Calbee ]
+  太平: [ 太平, Taipan ]
+  Amedei: [ Amedei ]
+  奈雪的茶: [ 奈雪的茶, 奈雪, Nayuki ]
+  零度果坊: [ 零度果坊 ]
+  蒙牛: [ 蒙牛, 蒙牛特仑苏, 特仑苏 ]
+  Lindt: [ Lindt, 瑞士莲 ]
+  汇源: [ 汇源 ]
+  白色恋人: [ 白色恋人, White Lovers ]
+  丹麦蓝罐曲奇: [ 丹麦蓝罐曲奇, Kjeldsens ]
+  森永: [ 森永, Morinaga ]
+  乐天: [ 乐天, Lotte ]
+  隅田川: [ 隅田川 ]
+  RXBAR: [ RXBAR, rxbar ]
+  圣培露: [ 圣培露, San Pellegrino ]
+  康师傅: [ 康师傅 ]
+  认养一头牛: [ 认养一头牛 ]
+  旺旺: [ 旺旺 ]
+  奥利奥: [ 奥利奥, Oreo ]
+  上好佳: [ 上好佳 ]
+  格力高: [ 格力高, Glico ]
+  卡士: [ 卡士 ]
+  永璞: [ 永璞, Yongpu ]
+  百事可乐: [ 百事可乐, Pepsi ]
+  Chobani: [ Chobani ]
+  安佳: [ 安佳, Anchor ]
+  Godiva: [ Godiva, 歌帝梵 ]
+  Valrhona: [ valrhona, 法芙娜 ]
+  Haribo: [ haribo ]
+  光明优倍: [ 光明优倍 ]  # 已不并入“光明”以免漏算子品牌表现
+  屈臣氏蒸馏水: [ 屈臣氏蒸馏水 ]  # 不并入“屈臣氏”
+  Kashi: [ kashi ]
+  好时: [ 好时, Hershey's ]
+  Royce': [ royce', royce ]
+  Vita Coco: [ vita coco ]
+  SmartSweets: [ smartsweets ]
+  三元: [ 三元 ]
+  麒麟: [ 麒麟, Kirin ]
+  稻香村: [ 稻香村 ]
+  波力海苔: [ 波力海苔 ]
+  洽洽: [ 洽洽 ]
+  海太: [ 海太, Haitai ]
+  莱家: [ 莱家 ]
+  Blue Diamond: [ blue diamond ]
+  科尔沁: [ 科尔沁 ]
+  和润: [ 和润 ]
+  农心: [ 农心, Nongshim ]
+  西麦: [ 西麦 ]
+  张飞: [ 张飞 ]
+  茶里王: [ 茶里王 ]
+  德运: [ 德运, Devondale ]
+  Callebaut: [ callebaut ]
+  哈根达斯: [ 哈根达斯, Haagen-Dazs, Häagen-Dazs ]
+  丽芝士: [ 丽芝士, Ritz ]
+  朝日: [ 朝日, Asahi ]
+  杏花楼: [ 杏花楼 ]
+  喜之郎: [ 喜之郎 ]
+  多力多滋: [ 多力多滋, Doritos ]
+  奇多: [ 奇多, Cheetos ]
+  麦维他: [ 麦维他, McVitie's ]
+  达能: [ 达能, Danone ]
+  Ritual Chocolate: [ ritual chocolate ]
+  UCC: [ ucc ]
+  innocent: [ innocent ]
+  HeyJuice: [ heyjuice, 黑汁 ]
+  Blueglass: [ blueglass ]
+  布尔本: [ 布尔本, Bourbon ]
+  果倍爽: [ 果倍爽, Capri-Sun ]
+  七喜: [ 七喜, 7Up ]
+  豆本豆: [ 豆本豆 ]
+  菲诺: [ 菲诺 ]
+  Weetabix: [ weetabix ]
+  Danisa: [ danisa ]  # 已与“丹麦蓝罐曲奇”区分
+  Jenny Bakery: [ jenny bakery ]
+  好利来: [ 好利来 ]
+  Ladurée: [ ladurée ]
+  UHA味觉糖: [ uha味觉糖 ]
+  绝味: [ 绝味, 绝味鸭脖 ]
+  黄飞红: [ 黄飞红 ]
+  蜜雪冰城: [ 蜜雪冰城 ]
+  清泉出山: [ 清泉出山 ]
+  Zevia: [ zevia ]
+  KIND: [ kind, kind bars ]
+  Arla: [ arla ]
+  纽仕兰: [ 纽仕兰 ]
+  Kirkland: [ kirkland, kirkland signature ]
+  Kettle: [ kettle brand ]
+  Popchips: [ popchips ]
+  东京香蕉: [ 东京香蕉 ]
+  湖池屋: [ 湖池屋 ]
+  McVitie's: [ mcvitie's ]  # 分品牌不合并麦维他（避免错误）
+  名仁: [ 名仁 ]
+  好望水: [ 好望水 ]
+  纯果乐: [ 纯果乐 ]
+  沈大成: [ 沈大成 ]
+  芬达: [ 芬达, Fanta ]
+  Ghirardelli: [ ghirardelli ]
+  可比克: [ 可比克 ]
+  趣多多: [ 趣多多 ]
+  美好时光: [ 美好时光 ]
+  张君雅: [ 张君雅小妹妹 ]
+  Ritual: [ ritual ]
+  Seesaw Coffee: [ seesaw, seesaw coffee ]  # 咖啡品牌
+  永和豆浆: [ 永和豆浆 ]
+  Alpro: [ alpro ]
+  奇华饼家: [ 奇华饼家 ]
+  YumEarth: [ yumearth ]
+  Albanese: [ albanese ]
+  宾堡: [ 宾堡, Bimbo ]
+  Bubly: [ bubly ]
+  美珍香: [ 美珍香 ]
+  Michel Cluizel: [ michel cluizel ]
+  贝纳颂: [ 贝纳颂 ]
+  都乐: [ 都乐, Dole ]
+  茶π: [ 茶π ]
+  老干妈: [ 老干妈 ]
+  蒙都: [ 蒙都 ]
+  Fage: [ fage ]
+  YOKU MOKU: [ yoku moku ]
+  Member’s Mark: [ member’s mark ]
+  波路梦: [ 波路梦 ]
+  Green & Black's: [ green & black's ]
+  Taza: [ taza ]
+  让茶: [ 让茶 ]
+  乐之: [ 乐之 ]
+  小伶鼬: [ 小伶鼬 ]
+  Ottogi: [ ottogi ]
+  钟薛高: [ 钟薛高 ]
+  川宁: [ 川宁, Twinings ]
+  illy: [ illy ]
+  乐天可可: [ 乐天可可 ]  # 与乐天区分
+
+
+  # --- 请在此处手动添加或合并别名 ---
+  # Example: 蔚来: [蔚来, nio, 蔚来汽车]
+
+# 步骤二: 定义品牌白名单 (仅使用标准键名)
+brands_whitelist:
+  - 农夫山泉
+  - 三得利
+  - 元气森林
+  - 三只松鼠
+  - 良品铺子
+  - 明治
+  - 喜茶
+  - 伊藤园
+  - 东方树叶
+  - 伊利
+  - 巴黎水
+  - 统一
+  - 可口可乐
+  - 百草味
+  - 桂格
+  - Oatly
+  - 乐事
+  - 星巴克
+  - 光明
+  - 维他奶
+  - 好丽友
+  - 简爱
+  - 乐纯
+  - 雀巢
+  - 沃隆
+  - 卡乐比
+  - 太平
+  - Amedei
+  - 奈雪的茶
+  - 零度果坊
+  - 蒙牛
+  - Lindt
+  - 汇源
+  - 白色恋人
+  - 丹麦蓝罐曲奇
+  - 森永
+  - 乐天
+  - 隅田川
+  - RXBAR
+  - 圣培露
+  - 康师傅
+  - 认养一头牛
+  - 旺旺
+  - 奥利奥
+  - 上好佳
+  - 格力高
+  - 卡士
+  - 永璞
+  - 百事可乐
+  - Chobani
+  - 安佳
+  - Godiva
+  - Valrhona
+  - Haribo
+  - 光明优倍
+  - Kashi
+  - 好时
+  - Royce'
+  - Vita Coco
+  - SmartSweets
+  - 三元
+  - 麒麟
+  - 稻香村
+  - 波力海苔
+  - 洽洽
+  - 海太
+  - 莱家
+  - Blue Diamond
+  - 科尔沁
+  - 和润
+  - 农心
+  - 西麦
+  - 张飞
+  - 茶里王
+  - 德运
+  - Callebaut
+  - 哈根达斯
+  - 丽芝士
+  - 朝日
+  - 杏花楼
+  - 喜之郎
+  - 多力多滋
+  - 奇多
+  - 麦维他
+  - 达能
+  - Ritual Chocolate
+  - UCC
+  - innocent
+  - HeyJuice
+  - Blueglass
+  - 布尔本
+  - 果倍爽
+  - 七喜
+  - 豆本豆
+  - 菲诺
+  - Weetabix
+  - Danisa
+  - Jenny Bakery
+  - 好利来
+  - Ladurée
+  - UHA味觉糖
+  - 绝味
+  - 黄飞红
+  - 蜜雪冰城
+  - 清泉出山
+  - Zevia
+  - KIND
+  - Arla
+  - 纽仕兰
+  - Kirkland
+  - Kettle
+  - Popchips
+  - 东京香蕉
+  - 湖池屋
+  - 名仁
+  - 好望水
+  - 纯果乐
+  - 沈大成
+  - 芬达
+  - Ghirardelli
+  - 可比克
+  - 趣多多
+  - 美好时光
+  - 张君雅
+  - Seesaw Coffee
+  - 永和豆浆
+  - Alpro
+  - 奇华饼家
+  - YumEarth
+  - Albanese
+  - 宾堡
+  - Bubly
+  - 美珍香
+  - Michel Cluizel
+  - 贝纳颂
+  - 都乐
+  - 茶π
+  - 老干妈
+  - 蒙都
+  - Fage
+  - YOKU MOKU
+  - Member’s Mark
+  - 波路梦
+  - Green & Black's
+  - Taza
+  - 让茶
+  - 乐之
+  - 小伶鼬
+  - Ottogi
+  - 钟薛高
+  - 川宁
+  - illy
+  - 乐天可可

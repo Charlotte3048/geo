@@ -1,0 +1,105 @@
+# Luxury 品类品牌词典模板
+# ========================================================
+# 自动生成于: 2025-11-28 16:52:19
+# 请仔细审核和完善此文件，特别是品牌别名 (Alias)。
+
+brand_dictionary:
+  香奈儿: [ 香奈儿, chanel ]
+  迪奥: [ 迪奥, dior ]
+  卡地亚: [ 卡地亚, cartier ]
+  爱马仕: [ 爱马仕, hermès ]
+  梵克雅宝: [ 梵克雅宝, van cleef & arpels ]
+  古驰: [ 古驰, gucci ]
+  蒂芙尼: [ 蒂芙尼, tiffany & co., tiffany ]
+  宝格丽: [ 宝格丽, bvlgari, bulgari ]
+  普拉达: [ 普拉达, prada ]
+  路易威登: [ 路易威登, louis vuitton, lv ]
+  博柏利: [ 博柏利, burberry ]
+  赛琳: [ 赛琳, celine ]
+  罗意威: [ 罗意威, loewe ]
+  圣罗兰: [ saint laurent, yves saint laurent ]
+  汤姆福特: [ 汤姆·福特, tom ford ]
+  宝诗龙: [ 宝诗龙, boucheron ]
+  伯爵: [ 伯爵, piaget ]
+  海瑞温斯顿: [ 海瑞温斯顿, harry winston ]
+  萧邦: [ 萧邦, chopard ]
+  格拉夫: [ 格拉夫, graff ]
+  尚美巴黎: [ 尚美巴黎, chaumet ]
+  伯爵风格（Brunello Cucinelli）: [ brunello cucinelli ]
+  Bottega Veneta: [ bottega veneta ]
+  Fendi: [ fendi ]
+  Max Mara: [ max mara ]
+  Acne Studios: [ acne studios ]
+  Maison Margiela: [ maison margiela ]
+  Jacquemus: [ jacquemus ]
+  Loro Piana: [ loro piana ]
+  Gentle Monster: [ gentle monster ]
+  Persol: [ persol ]
+  Oakley: [ oakley ]
+  Swarovski: [ swarovski, 施华洛世奇 ]
+  Mikimoto: [ mikimoto ]
+  De Beers: [ de beers ]
+  Pomellato: [ pomellato ]
+  Patek Philippe: [ patek philippe ]
+  Rolex: [ rolex ]
+  麒麟: [ 麒麟 ]   # 可能为时尚/珠宝品牌 Kirin
+  Maison Francis Kurkdjian: [ maison francis kurkdjian ]
+  Creed: [ creed ]
+  Byredo: [ byredo ]
+  Diptyque: [ diptyque ]
+  Amouage: [ amouage ]
+  By Kilian: [ by kilian ]
+  Roja Dove: [ roja dove ]
+  Acqua di Parma: [ acqua di parma ]
+  Le Labo: [ le labo ]
+  Jo Malone: [ jo malone ]
+
+
+  # --- 请在此处手动添加或合并别名 ---
+  # Example: 蔚来: [蔚来, nio, 蔚来汽车]
+
+# 步骤二: 定义品牌白名单 (仅使用标准键名)
+brands_whitelist:
+  - 香奈儿
+  - 迪奥
+  - 卡地亚
+  - 爱马仕
+  - 梵克雅宝
+  - 古驰
+  - 蒂芙尼
+  - 宝格丽
+  - 普拉达
+  - 路易威登
+  - 博柏利
+  - 赛琳
+  - 罗意威
+  - 圣罗兰
+  - 汤姆福特
+  - 宝诗龙
+  - 伯爵
+  - 海瑞温斯顿
+  - 萧邦
+  - 格拉夫
+  - 尚美巴黎
+  - 伯爵风格（Brunello Cucinelli）
+  - Bottega Veneta
+  - Fendi
+  - Max Mara
+  - Acne Studios
+  - Maison Margiela
+  - Jacquemus
+  - Loro Piana
+  - Gentle Monster
+  - Persol
+  - Oakley
+  - Swarovski
+  - Mikimoto
+  - De Beers
+  - Pomellato
+  - Patek Philippe
+  - Rolex
+  - 麒麟
+  - Maison Francis Kurkdjian
+  - Amouage
+  - By Kilian
+  - Roja Dove

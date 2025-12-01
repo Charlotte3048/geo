@@ -1,0 +1,151 @@
+# Food 品类品牌词典模板
+# ========================================================
+# 自动生成于: 2025-11-27 18:03:13
+# 请仔细审核和完善此文件，特别是品牌别名 (Alias)。
+
+brand_dictionary:
+  喜茶: [ 喜茶 ]
+  奈雪的茶: [ 奈雪的茶, 奈雪 ]
+  茶颜悦色: [ 茶颜悦色 ]
+  CoCo都可: [ coco都可 ]
+  乐乐茶: [ 乐乐茶 ]
+  古茗: [ 古茗 ]
+  书亦烧仙草: [ 书亦烧仙草 ]
+  一点点: [ 一点点 ]
+  霸王茶姬: [ 霸王茶姬 ]
+  三顿半: [ 三顿半 ]
+
+  星巴克: [ 星巴克 ]
+  "%Arabica": [ "%arabica", "% arabica" ]
+  Blue Bottle: [ blue bottle, blue bottle coffee ]
+  Seesaw Coffee: [ seesaw coffee, seesaw ]
+  Manner Coffee: [ manner coffee, manner ]
+  M Stand: [ m stand ]
+  Metal Hands: [ metal hands ]
+  Lady M: [ lady m ]
+  Stumptown Coffee Roasters: [ stumptown coffee roasters ]
+  Intelligentsia Coffee: [ intelligentsia coffee ]
+
+  海底捞: [ 海底捞 ]
+  巴奴毛肚火锅: [ 巴奴毛肚火锅 ]
+  大龙燚: [ 大龙燚 ]
+  蜀九香: [ 蜀九香 ]
+  小龙坎: [ 小龙坎 ]
+  周师兄火锅: [ 周师兄火锅 ]
+  呷哺呷哺: [ 呷哺呷哺 ]
+
+  麦当劳: [ 麦当劳 ]
+  肯德基: [ 肯德基 ]
+  汉堡王: [ 汉堡王, burger king ]
+  Shake Shack: [ shake shack ]
+  Five Guys: [ five guys ]
+  In-N-Out Burger: [ in-n-out burger ]
+  Wendy's: [ wendy's ]
+  赛百味: [ 赛百味 ]
+  达美乐披萨: [ 达美乐披萨, 达美乐 ]
+  必胜客: [ 必胜客 ]
+  Pizza Marzano: [ pizza marzano ]
+  棒约翰: [ 棒约翰 ]
+
+  真功夫: [ 真功夫 ]
+  外婆家: [ 外婆家 ]
+  南京大牌档: [ 南京大牌档 ]
+  新荣记: [ 新荣记 ]
+  大董: [ 大董 ]
+  陈麻婆豆腐: [ 陈麻婆豆腐 ]
+  得心斋: [ 得心斋 ]
+  明婷饭店: [ 明婷饭店 ]
+  巴国布衣: [ 巴国布衣 ]
+  光脑壳家常菜: [ 光脑壳家常菜 ]
+  老地方面馆: [ 老地方面馆 ]
+  阿大葱油饼: [ 阿大葱油饼 ]
+
+  眉州东坡: [ 眉州东坡 ]
+  陶陶居: [ 陶陶居 ]
+  京兆尹: [ 京兆尹 ]
+  泮溪酒家: [ 泮溪酒家 ]
+  北园酒家: [ 北园酒家 ]
+  广州酒家: [ 广州酒家 ]
+  莲香楼: [ 莲香楼 ]
+  镛记酒家: [ 镛记酒家 ]
+  应记面家: [ 应记面家 ]
+  松鹤楼: [ 松鹤楼 ]
+  凤凰楼: [ 凤凰楼 ]
+  春满园: [ 春满园 ]
+  大同酒家: [ 大同酒家 ]
+
+
+  # --- 请在此处手动添加或合并别名 ---
+  # Example: 蔚来: [蔚来, nio, 蔚来汽车]
+
+# 步骤二: 定义品牌白名单 (仅使用标准键名)
+brands_whitelist:
+  - 喜茶
+  - 奈雪的茶
+  - 茶颜悦色
+  - CoCo都可
+  - 乐乐茶
+  - 古茗
+  - 书亦烧仙草
+  - 一点点
+  - 霸王茶姬
+  - 三顿半
+
+  - 星巴克
+  - "%Arabica"
+  - Blue Bottle
+  - Seesaw Coffee
+  - Manner Coffee
+  - M Stand
+  - Metal Hands
+  - Lady M
+  - Stumptown Coffee Roasters
+  - Intelligentsia Coffee
+
+  - 海底捞
+  - 巴奴毛肚火锅
+  - 大龙燚
+  - 蜀九香
+  - 小龙坎
+  - 周师兄火锅
+  - 呷哺呷哺
+
+  - 麦当劳
+  - 肯德基
+  - 汉堡王
+  - Shake Shack
+  - Five Guys
+  - In-N-Out Burger
+  - Wendy's
+  - 赛百味
+  - 达美乐披萨
+  - 必胜客
+  - Pizza Marzano
+  - 棒约翰
+
+  - 真功夫
+  - 外婆家
+  - 南京大牌档
+  - 新荣记
+  - 大董
+  - 陈麻婆豆腐
+  - 得心斋
+  - 明婷饭店
+  - 巴国布衣
+  - 光脑壳家常菜
+  - 老地方面馆
+  - 阿大葱油饼
+
+  - 眉州东坡
+  - 陶陶居
+  - 京兆尹
+  - 泮溪酒家
+  - 北园酒家
+  - 广州酒家
+  - 莲香楼
+  - 镛记酒家
+  - 应记面家
+  - 松鹤楼
+  - 凤凰楼
+  - 春满园
+  - 大同酒家

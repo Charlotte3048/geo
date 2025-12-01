@@ -19,7 +19,8 @@ from dotenv import load_dotenv  # 新增导入 dotenv
 # python explore_brands_domestic.py --task scenic --results_file results_scenic_merged.json
 # python explore_brands_domestic.py --task phone --results_file results_phone_merged.json
 # python explore_brands_domestic.py --task food --results_file results_food_merged.json
-
+# python explore_brands_domestic.py --task snack --results_file results_snack_merged.json
+# python explore_brands_domestic.py --task city --results_file results_city_merged.json
 # ==============================================================================
 
 # --- 配置 ---
@@ -37,9 +38,9 @@ DEFAULT_MODEL_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 def get_brands_from_text_with_ai(client: openai.OpenAI, text: str, model: str) -> list:
     """使用指定的AI模型从文本中提取品牌名称"""
     system_prompt = """
-    你是一个专业的市场分析师。你的任务是从给定的中文文本中，提取所有清晰的品牌名称、公司名称或景区名称。
+    你是一个专业的市场分析师。你的任务是从给定的中文文本中，提取所有清晰的城市名称。
     规则:
-    1. 只返回品牌名称或景区名称，例如: "比亚迪", "故宫博物院", "蔚来"。
+    1. 只返回城市名称，例如: "郑州", "北京", "上海"。
     2. 忽略技术术语 (例如: "三电系统"), 价格 (例如: "15万"), 车型名称 (例如: "Model 3"), 泛指名词 (例如: "SUV", "景区")。
     3. 返回一个 JSON 数组，例如: ["比亚迪", "理想", "故宫博物院"]。如果没有找到任何品牌或景区，返回空数组 []。
     """

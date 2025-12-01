@@ -1,0 +1,153 @@
+# Beauty 品类品牌词典模板
+# ========================================================
+# 自动生成于: 2025-11-28 16:21:16
+# 请仔细审核和完善此文件，特别是品牌别名 (Alias)。
+
+brand_dictionary:
+  兰蔻: [ 兰蔻, lancôme ]
+  雅诗兰黛: [ 雅诗兰黛, estée lauder ]
+  香奈儿: [ 香奈儿, chanel ]
+  迪奥: [ 迪奥, dior ]
+  海蓝之谜: [ 海蓝之谜, la mer, la mer 海蓝之谜 ]
+  娇兰: [ 娇兰, guerlain ]
+  圣罗兰: [ 圣罗兰, ysl, yves saint laurent ]
+  阿玛尼: [ 阿玛尼, armani, giorgio armani, armani beauty ]
+  纪梵希: [ 纪梵希, givenchy ]
+  植村秀: [ 植村秀 ]
+  香缇卡: [ 香缇卡, chantecaille ]
+  赫莲娜: [ 赫莲娜, helena rubinstein ]
+  科颜氏: [ 科颜氏, kiehl’s ]
+  娇韵诗: [ 娇韵诗, clarins ]
+  黛珂: [ 黛珂, decorté ]
+  资生堂: [ 资生堂, shiseido ]
+  理肤泉: [ 理肤泉, la roche-posay ]
+  雅漾: [ 雅漾, avene ]
+  悦木之源: [ 悦木之源, origins ]
+  欧莱雅: [ 欧莱雅, l’oreal ]
+  修丽可: [ 修丽可, skinceuticals ]
+  薇诺娜: [ 薇诺娜 ]
+  芙丽芳丝: [ 芙丽芳丝, freeplus ]
+  珂润: [ 珂润, curél ]
+  芭比波朗: [ 芭比波朗, bobbi brown ]
+  MAC: [ mac , 魅可]
+  NARS: [ nars , 纳斯]
+  Hourglass: [ hourglass ]
+  Charlotte Tilbury: [ charlotte tilbury, ct ]
+  Tatcha: [ tatcha ]
+  Huda Beauty: [ huda beauty ]
+  Fenty Beauty: [ fenty beauty ]
+  Pat McGrath Labs: [ pat mcgrath labs, pat mcgrath ]
+  Natasha Denona: [ natasha denona ]
+  Too Faced: [ too faced ]
+  Smashbox: [ smashbox ]
+  Anastasia Beverly Hills: [ anastasia beverly hills ]
+  Stila: [ stila ]
+  Glossier: [ glossier ]
+  Benefit: [ benefit, benefit cosmetics, 贝玲妃 ]
+  The Ordinary: [ the ordinary ]
+  Murad: [ murad ]
+  Drunk Elephant: [ drunk elephant ]
+  SkinCeuticals: [ skinceuticals ]
+  Augustinus Bader: [ augustinus bader ]
+  La Prairie: [ la prairie, 莱珀妮 ]
+  Valmont: [ valmont, 法尔曼 ]
+  Jo Malone London: [ jo malone london, jo malone, 祖玛珑 ]
+  Le Labo: [ le labo ]
+  Diptyque: [ diptyque ]
+  Maison Margiela: [ maison margiela ]
+  Narciso Rodriguez: [ narciso rodriguez ]
+  Acqua di Parma: [ acqua di parma ]
+  Byredo: [ byredo ]
+  Aesop: [ aesop ]
+  Olaplex: [ olaplex ]
+  Oribe: [ oribe ]
+  Philip B: [ philip b ]
+  Kiss Me: [ kiss me ]
+  IPSA: [ ipsa ]
+  CeraVe: [ cerave ]
+  EVE LOM: [ eve lom ]
+  Eucerin: [ eucerin, 优色林 ]
+  Bioderma: [ bioderma, 贝德玛 ]
+  DHC: [ dhc ]
+  欧舒丹: [ 欧舒丹, l’occitane ]
+  碧柔: [ 碧柔, biore ]
+  碧欧泉: [ 碧欧泉, biotherm ]
+  完美日记: [ 完美日记 ]
+  优色林: [ 优色林 ]
+
+
+  # --- 请在此处手动添加或合并别名 ---
+  # Example: 蔚来: [蔚来, nio, 蔚来汽车]
+
+# 步骤二: 定义品牌白名单 (仅使用标准键名)
+brands_whitelist:
+  - 兰蔻
+  - 雅诗兰黛
+  - 香奈儿
+  - 迪奥
+  - 海蓝之谜
+  - 娇兰
+  - 圣罗兰
+  - 阿玛尼
+  - 纪梵希
+  - 植村秀
+  - 香缇卡
+  - 赫莲娜
+  - 科颜氏
+  - 娇韵诗
+  - 黛珂
+  - 资生堂
+  - 理肤泉
+  - 雅漾
+  - 悦木之源
+  - 欧莱雅
+  - 修丽可
+  - 薇诺娜
+  - 芙丽芳丝
+  - 珂润
+  - 芭比波朗
+  - MAC
+  - NARS
+  - Hourglass
+  - Charlotte Tilbury
+  - Tatcha
+  - Huda Beauty
+  - Fenty Beauty
+  - Pat McGrath Labs
+  - Natasha Denona
+  - Too Faced
+  - Smashbox
+  - Anastasia Beverly Hills
+  - Stila
+  - Glossier
+  - Benefit
+  - The Ordinary
+  - Murad
+  - Drunk Elephant
+  - SkinCeuticals
+  - Augustinus Bader
+  - La Prairie
+  - Valmont
+  - Jo Malone London
+  - Le Labo
+  - Diptyque
+  - Maison Margiela
+  - Narciso Rodriguez
+  - Acqua di Parma
+  - Byredo
+  - Aesop
+  - Olaplex
+  - Oribe
+  - Philip B
+  - Kiss Me
+  - IPSA
+  - CeraVe
+  - EVE LOM
+  - Eucerin
+  - Bioderma
+  - DHC
+  - 欧舒丹
+  - 碧柔
+  - 碧欧泉
+  - 完美日记
+  - 优色林
