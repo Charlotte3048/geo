@@ -19,8 +19,9 @@ from dotenv import load_dotenv  # 新增导入 dotenv
 # python explore_brands_domestic.py --task scenic --results_file results_scenic_merged.json
 # python explore_brands_domestic.py --task phone --results_file results_phone_merged.json
 # python explore_brands_domestic.py --task food --results_file results_food_merged.json
-# python explore_brands_domestic.py --task snack --results_file results_snack_merged.json
-# python explore_brands_domestic.py --task city --results_file results_city_merged.json
+# python explore_brands_domestic.py --task snack --results_file merged_results/results_snack_merged.json
+# python explore_brands_domestic.py --task city --results_file merged_results/results_city_merged.json
+# python explore_brands_domestic.py --task tc --results_file /Users/charlotte/PycharmProjects/GEO/oversea/results_merged_tc.json
 # ==============================================================================
 
 # --- 配置 ---
@@ -38,12 +39,14 @@ DEFAULT_MODEL_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 def get_brands_from_text_with_ai(client: openai.OpenAI, text: str, model: str) -> list:
     """使用指定的AI模型从文本中提取品牌名称"""
     system_prompt = """
-    你是一个专业的市场分析师。你的任务是从给定的中文文本中，提取所有清晰的城市名称。
-    规则:
-    1. 只返回城市名称，例如: "郑州", "北京", "上海"。
-    2. 忽略技术术语 (例如: "三电系统"), 价格 (例如: "15万"), 车型名称 (例如: "Model 3"), 泛指名词 (例如: "SUV", "景区")。
-    3. 返回一个 JSON 数组，例如: ["比亚迪", "理想", "故宫博物院"]。如果没有找到任何品牌或景区，返回空数组 []。
-    """
+            你是一个专业的市场分析师。你的任务是从给定的中文文本中，提取所有明确的中国旅游城市名称。
+            规则:
+            1. 只返回旅游城市名称，例如: "杭州", "西安", "成都", "昆明"。
+            2. 忽略非城市概念，例如: 景点 (如 "西湖", "张家界"), 省份与大区 (如 "云南", "华东"), 旅游主题 (如 "亲子游", "避暑"), 描述词与情绪词 (如 "很美", "小众")。
+            3. 若提及城市与其下属景点同时出现，仅返回城市名称。例如: "杭州西湖很适合散心" → 返回 ["杭州"]。
+            4. 返回 JSON 数组，例如: ["北京", "厦门", "三亚"]；如果未识别到任何城市名称，则返回 []。
+            """
+
     try:
         response = client.chat.completions.create(
             model=model,

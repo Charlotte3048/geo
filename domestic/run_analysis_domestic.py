@@ -127,7 +127,6 @@ def call_openai_compatible_api(model_config, question):
 
 
 from openai import OpenAI
-import requests
 import json
 
 

@@ -15,12 +15,13 @@ import time
 # 示例用法:
 # python explore_brands.py --task smart_hardware --category_prefix "智能硬件-"
 # python explore_brands.py --task home_appliance --category_prefix "家用电器-"
+# python explore_brands.py --task ts_travel --category_prefix "中国旅游景区"
 # ==============================================================================
 
 # --- 配置 ---
 # 这些现在是默认值，可以通过命令行参数覆盖
 # oversea/results_merged_ha.json
-DEFAULT_RESULTS_FILE = "results_merged_ha.json"
+DEFAULT_RESULTS_FILE = "results_merged_ts.json"
 DEFAULT_MODEL = "google/gemini-2.5-flash"  # 默认使用高性价比模型
 
 
@@ -28,13 +29,14 @@ DEFAULT_MODEL = "google/gemini-2.5-flash"  # 默认使用高性价比模型
 def get_brands_from_text_with_ai(client: openai.OpenAI, text: str, model: str) -> list:
     """使用指定的AI模型从文本中提取品牌名称"""
     system_prompt = """
-    You are a professional market analyst. Your task is to extract all clear brand names representing companies or products from the given text.
-    Rules:
-    1. Return only brand names, e.g., "Roborock", "TCL", "美的".
-    2. Ignore technical terms (e.g., "Mini LED"), geographical locations (e.g., "North America"), generic nouns (e.g., "TV", "technology"), and website names (e.g., "Amazon").
-    3. If a brand has multiple names (e.g., "石头科技" and "Roborock"), extract them all.
-    4. Return as a JSON array, e.g., ["Roborock", "Ecovacs", "美的"]. Return an empty array [] if no brands are found.
-    """
+        你是一个专业的市场分析师。你的任务是从给定的中文文本中，提取所有清晰的中国旅游景点名称。
+        规则:
+        1. 只返回景点 / 景区 / 旅游目的地名称，例如: "故宫博物院", "九寨沟", "张家界国家森林公园"。
+        2. 忽略与景点无关的泛称或信息，例如: 省市名称 (如 "云南", "浙江"), 区域泛指 (如 "西北", "华东"), 旅游主题 (如 "亲子游", "人文景点"), 描述性词汇 (如 "寺庙", "古镇", "风景区")，除非文本中明确指出特定的景点名称。
+        3. 忽略酒店 / 餐厅 / 商场 / 交通工具 / 品牌等非景区实体。
+        4. 返回一个 JSON 数组，例如: ["故宫博物院", "西湖", "黄山"]；如果没有找到任何景点名称，返回空数组 []。
+        """
+
     try:
         response = client.chat.completions.create(
             model=model,

@@ -17,10 +17,12 @@ import numpy as np
 # python analyze_results_domestic.py --task nev --results results_nev_merged.json --brands brand_dictionary_nev.yaml
 # python analyze_results_domestic.py --task phone --results results_phone_merged.json --brands brand_dictionary_phone.yaml
 # python analyze_results_domestic.py --task food --results results_food_merged.json --brands brand_dictionary_food.yaml
-# python analyze_results_domestic.py --task snack --results results_snack_merged.json --brands brand_dictionary_snack.yaml
+# python analyze_results_domestic.py --task snack --results merged_results/results_snack_merged.json --brands config/brand_dictionary_snack.yaml
 # python analyze_results_domestic.py --task city --results results_city_merged.json --brands brand_dictionary_city.yaml
 # python analyze_results_domestic.py --task luxury --results results_luxury_merged.json --brands brand_dictionary_luxury.yaml
 # python analyze_results_domestic.py --task beauty --results results_beauty_merged.json --brands brand_dictionary_beauty.yaml
+# python analyze_results_domestic.py --task travel --results results_merged_ts.json --brands config/brand_dictionary_ts_travel.yaml
+# python analyze_results_domestic.py --task tc_city --results /Users/charlotte/PycharmProjects/GEO/oversea/results_merged_tc.json --brands brand_dictionary_tc.yaml
 # ==============================================================================
 
 
@@ -65,12 +67,12 @@ def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
                         raw_metrics[brand]["is_strong"] = 1
 
     # 检测引用
-    if references:
-        for brand, metrics in raw_metrics.items():
-            if metrics["mentioned"]:
-                for ref in references:
-                    if brand.lower() in ref.lower():
-                        raw_metrics[brand]["ref_count"] += 1
+    # if references:
+    #     for brand, metrics in raw_metrics.items():
+    #         if metrics["mentioned"]:
+    #             for ref in references:
+    #                 if brand.lower() in ref.lower():
+    #                     raw_metrics[brand]["ref_count"] += 1
 
     return raw_metrics
 
