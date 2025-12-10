@@ -50,7 +50,7 @@ def build_domestic_runtime_config(category_key: str,
 
     cfg["paths"]["questions_file"] = os.path.abspath(questions_subset_path)
 
-    results_dir = os.path.join("domestic", "outputs", "results", category_key)
+    results_dir = os.path.join("outputs", "results", category_key)
     os.makedirs(results_dir, exist_ok=True)
     cfg["paths"]["results_dir"] = results_dir
 
@@ -68,17 +68,27 @@ def build_domestic_runtime_config(category_key: str,
 
 def run_domestic_collection(runtime_cfg_path: str, category_key: str) -> str:
     """
-    调 run_analysis_domestic.py 并返回 merged 结果路径
+    调 run_analysis_domestic.py 并返回 merged 结果路径（使用绝对路径，避免 domestic/domestic 嵌套）
     """
-    # 注意：传入相对路径，而不是 domestic/config_runtime/xxx
-    cfg_rel = os.path.relpath(runtime_cfg_path, "domestic")
 
-    analysis_script = os.path.join(DOMESTIC_DIR, "run_analysis_domestic.py")
-    cmd = ["python", analysis_script, "--config", cfg_rel]
-    print(f"[run_analysis] running: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    # ❶ 将 config 路径转成绝对路径（关键修复）
+    cfg_abs = os.path.abspath(runtime_cfg_path)
 
-    merged_path = f"results_{category_key}_merged.json"
+    # ❷ run_analysis_domestic 脚本绝对路径
+    analysis_script = os.path.abspath(os.path.join(DOMESTIC_DIR, "run_analysis_domestic.py"))
+
+    # ❸ 强制 subprocess 在项目根目录运行
+    process = subprocess.run(
+        ["python", analysis_script, "--config", cfg_abs],
+        cwd=BASE_DIR,  # ★★★★★ 关键修复，永远从根目录解析相对路径
+        check=True
+    )
+
+    # ❹ 输出文件路径也转成绝对路径
+    merged_path = os.path.abspath(
+        os.path.join(BASE_DIR, "domestic/merged_results", f"results_{category_key}_merged.json")
+    )
+
     return merged_path
 
 

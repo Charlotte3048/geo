@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 env_path = os.path.join(BASE_DIR, ".env")
 load_dotenv(env_path)
-print("[DEBUG] Loaded OPENROUTER_API_KEY =", os.getenv("OPENROUTER_API_KEY"))
 
 # ==========================================================
 # ② 下面才开始 import Agent / Tools / LLM
@@ -32,19 +31,19 @@ llm = ChatOpenAI(
 # ==========================================================
 # ④ 构建 Agent
 # ==========================================================
+
 prompt = ChatPromptTemplate.from_messages([
     ("system",
-     "你是 Filter Agent。任务：根据用户输入找出对应的**唯一英文 category key**。"
-     "你的调用规则："
-     "1. 你只能返回 EXACT ONE category。"
-     "2. 不能自动拆分类（如 snack→ snack+beverage）。"
-     "3. 如果用户提到的是“零食饮料”，你必须映射为 SNACK（snack）。"
-     "4. category 的取值必须来自：['snack','beauty','food','city','luxury','nev','phone','scenic']"
-     "严格遵守，不得联想不存在的品类。"
+     "你是 Filter Agent，你的唯一任务是根据用户输入的 category 调用工具 filter_questions。\n"
+     "⚠️ 你只能调用工具，不允许生成任何自然语言。\n"
+     "⚠️ 工具返回的内容（路径字符串）必须直接作为你的最终回答。\n"
+     "⚠️ 不要添加任何解释、前缀、总结、Markdown 标记。\n"
+     "最终输出只能是一个纯路径，例如：temp/questions_snack.json"
     ),
     ("human", "{input}"),
     ("assistant", "{agent_scratchpad}")
 ])
+
 
 
 agent = create_tool_calling_agent(llm, [filter_tool], prompt)
