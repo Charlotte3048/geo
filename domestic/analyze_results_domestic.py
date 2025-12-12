@@ -29,24 +29,53 @@ import numpy as np
 def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
     """分析单个回答，提取品牌相关指标"""
     raw_metrics = defaultdict(
-        lambda: {"mentioned": 0, "first_pos": float('inf'), "is_strong": 0, "ref_count": 0, "mention_count": 0})
+        lambda: {"mentioned": 0, "first_pos": float('inf'), "is_strong": 0, "ref_count": 0, "mention_count": 0,
+                 "top10_points": 0})
     answer_lower = answer_text.lower()
 
-    # 检测品牌提及
+    # --- 1. 检测品牌提及并计算 first_pos ---
+    brand_mentions_with_pos = []
     for std_brand, aliases in brand_map.items():
         for alias in aliases:
             alias_lower = alias.lower()
-            if alias_lower in answer_lower:
+            # Find all occurrences of the alias
+            for match in re.finditer(re.escape(alias_lower), answer_lower):
                 raw_metrics[std_brand]["mentioned"] = 1
-                raw_metrics[std_brand]["mention_count"] += answer_lower.count(alias_lower)
-                try:
-                    pos = answer_lower.index(alias_lower)
-                    if pos < raw_metrics[std_brand]["first_pos"]:
-                        raw_metrics[std_brand]["first_pos"] = pos
-                except ValueError:
-                    pass
+                raw_metrics[std_brand]["mention_count"] += 1  # 每次匹配都算一次提及
 
-    # 检测强推荐
+                pos = match.start()
+                if pos < raw_metrics[std_brand]["first_pos"]:
+                    raw_metrics[std_brand]["first_pos"] = pos
+
+                # 收集所有首次提及的位置，用于计算 Top 10 积分
+                brand_mentions_with_pos.append({
+                    "brand": std_brand,
+                    "pos": pos
+                })
+
+    # --- 2. 计算 Top 10 积分 (前10可见度) ---
+    # 目标：找到每个品牌首次出现的位置，并根据首次出现的位置排名给分
+
+    # 找到每个品牌的首次出现位置
+    first_mention_positions = {}
+    for mention in brand_mentions_with_pos:
+        brand = mention["brand"]
+        pos = mention["pos"]
+        if brand not in first_mention_positions or pos < first_mention_positions[brand]:
+            first_mention_positions[brand] = pos
+
+    # 将品牌按首次出现位置排序
+    sorted_brands_by_pos = sorted(first_mention_positions.items(), key=lambda item: item[1])
+
+    # 给前 10 个品牌分配积分
+    for rank, (brand, pos) in enumerate(sorted_brands_by_pos):
+        if rank < 10:  # 排名从 0 开始，所以 < 10 是前 10 个
+            points = 10 - rank  # 1st (rank 0) gets 10, 10th (rank 9) gets 1
+            raw_metrics[brand]["top10_points"] = points
+        else:
+            break  # 超过 10 个品牌后停止计分
+
+    # --- 3. 检测强推荐 (is_strong) ---
     sentences = re.split(r'[。\n]', answer_text)
 
     strong_patterns = [
@@ -89,7 +118,7 @@ def safe_log1p_scaled(x, k=1000, scale=10):
 def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, weights: dict) -> dict:
     """计算所有品牌的得分（保留原结构，仅 mind_share 使用 log 压缩）"""
     all_brands_raw_metrics = defaultdict(
-        lambda: {"total_mentions": 0, "first_pos_sum": 0, "strong_recommend_count": 0,
+        lambda: {"total_mentions": 0, "first_pos_sum": 0, "top10_score_sum": 0, "strong_recommend_count": 0,
                  "total_ref_count": 0, "mention_in_answers": 0})
     total_brand_mentions_across_all = 0
 
@@ -109,6 +138,7 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
                 if metrics["first_pos"] != float('inf'):
                     brand_global_metrics["first_pos_sum"] += metrics["first_pos"]
                 brand_global_metrics["strong_recommend_count"] += metrics["is_strong"]
+                brand_global_metrics["top10_score_sum"] += metrics["top10_points"]  # 累加 Top 10 积分
                 brand_global_metrics["total_ref_count"] += metrics["ref_count"]
                 brand_global_metrics["mention_in_answers"] += 1
                 total_brand_mentions_across_all += metrics["mention_count"]
@@ -118,8 +148,8 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
 
     # 计算归一化参数
     max_mentions = max((m["total_mentions"] for m in all_brands_raw_metrics.values()), default=1)
-    max_density = max((m["total_mentions"] / m["mention_in_answers"]
-                       for m in all_brands_raw_metrics.values() if m["mention_in_answers"] > 0), default=1)
+    # max_density = max((m["total_mentions"] / m["mention_in_answers"]
+    #                    for m in all_brands_raw_metrics.values() if m["mention_in_answers"] > 0), default=1)
     max_strong = max((m["strong_recommend_count"] for m in all_brands_raw_metrics.values()), default=1)
 
     # 计算每个品牌的得分
@@ -131,7 +161,7 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
         mention_density = metrics["total_mentions"] / metrics["mention_in_answers"] if metrics[
                                                                                            "mention_in_answers"] > 0 else 0
 
-        # 1. 品牌可见度（可线性规则）
+        # 1. 品牌回答显著度
         if avg_pos == float('inf'):
             score_visibility = 0
         elif avg_pos < 500:
@@ -141,29 +171,32 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
         else:
             score_visibility = 0
 
-        # 2. 引用率（总提及次数）
-        score_mention_rate = (metrics["total_mentions"] / max_mentions) * 100 if max_mentions > 0 else 0
-
-        # 3. AI认知指数（强推荐次数）
-        normalized_strong = (metrics["strong_recommend_count"] + 1) / (max_strong + 1)
-        score_ai_ranking = math.sqrt(normalized_strong) * 100
-
-        # 4. 平均引用密度
-        norm_density = mention_density / max_density
-        score_ref_depth = safe_log1p_scaled(norm_density, k=1000)
-
-        # 5. AI认知份额（仅此项使用 log(1 + kx) × scale）
+        # 2. 声量占比 share of voice
         normalized_mind_share = metrics["total_mentions"] / total_brand_mentions_across_all
-        score_mind_share = safe_log1p_scaled(normalized_mind_share, k=1000, scale=20)
+        share_of_voice = safe_log1p_scaled(normalized_mind_share, k=1000, scale=20)
+
+        # 3. 前10可见度 (新逻辑)
+        # 累加 Top 10 积分，然后归一化
+        max_top10_score = max((m["top10_score_sum"] for m in all_brands_raw_metrics.values()), default=1)
+
+        normalized_top10 = (metrics["top10_score_sum"] + 1) / (max_top10_score + 1)
+        top10_visibility = math.sqrt(normalized_top10) * 100  # 沿用开方平滑归一化
+
+        # 4. 竞争力指数
+        competitiveness = (metrics["total_mentions"] / max_mentions) * 100 if max_mentions > 0 else 0
+
+        # 5. 情感分析
+        normalized_strong = (metrics["strong_recommend_count"] + 1) / (max_strong + 1)
+        sentiment_analysis = math.sqrt(normalized_strong) * 100
 
         # 加权平均
         total_score = (
-                              score_visibility * weights["visibility"] +
-                              score_mention_rate * weights["mention_rate"] +
-                              score_ai_ranking * weights["ai_ranking"] +
-                              score_ref_depth * weights["ref_depth"] +
-                              score_mind_share * weights["mind_share"]
-                      ) / 100 # 加常数以避免分数过低
+                              score_visibility * weights["brand_prominence"] +
+                              share_of_voice * weights["share_of_voice"] +
+                              top10_visibility * weights["top10_visibility"] +
+                              competitiveness * weights["competitiveness"] +
+                              sentiment_analysis * weights["sentiment_analysis"]
+                      ) / 100  # 加常数以避免分数过低
 
         final_scores[brand] = {
             "品牌指数": total_score,
@@ -172,11 +205,11 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
             "强推荐次数": metrics["strong_recommend_count"],
             "平均提及密度": mention_density,
             "维度得分": {
-                "visibility": score_visibility,
-                "mention_rate": score_mention_rate,
-                "ai_ranking": score_ai_ranking,
-                "ref_depth": score_ref_depth,
-                "mind_share": score_mind_share
+                "brand_prominence": score_visibility,
+                "share_of_voice": share_of_voice,
+                "top10_visibility": top10_visibility,
+                "competitiveness": competitiveness,
+                "sentiment_analysis": sentiment_analysis
             }
         }
 
@@ -198,22 +231,34 @@ def write_ranking_report(output_file: str, title: str, scores: dict, task_name: 
         # 总榜单表格
         f.write("## 📊 品牌排名总榜单\n\n")
         f.write(
-            "| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 | 强推荐次数 | 品牌可见度 | 引用率 | 品牌AI认知指数 | 平均引用密度 | 竞争力指数 |\n")
+            "| 排名 | 品牌名称 | 品牌指数 | 总提及次数 | 出现次数 | 强推荐次数 | 品牌回答显著度 | 声量占比 | 前10可见度 | 竞争力指数 | 情感分析 |\n")
         f.write("|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n")
 
         sorted_brands = sorted(scores.items(), key=lambda x: x[1]["品牌指数"], reverse=True)
 
+        # for rank, (brand, data) in enumerate(sorted_brands, 1):
+        #     dims = data["维度得分"]
+        #
+        # f.write(
+        #     f"| {rank} | {brand} | **{data['品牌指数']:.2f}** | "
+        #     f"{data['总提及次数']} | {data['出现次数']} | {data['强推荐次数']} | "
+        #     f"{dims['brand_prominence']:.1f} | {dims['share_of_voice']:.1f} | {dims['top10_visibility']:.1f} | "
+        #     f"{dims['competitiveness']:.1f} | {dims['sentiment_analysis']:.1f} |\n"
+        # )
+        #
+        # f.write("\n---\n\n")
+
         for rank, (brand, data) in enumerate(sorted_brands, 1):
             dims = data["维度得分"]
 
-            f.write(
+            # 确保所有内容都在一个 f.write 调用中，并以换行符结束
+            row_content = (
                 f"| {rank} | {brand} | **{data['品牌指数']:.2f}** | "
                 f"{data['总提及次数']} | {data['出现次数']} | {data['强推荐次数']} | "
-                f"{dims['visibility']:.1f} | {dims['mention_rate']:.1f} | {dims['ai_ranking']:.1f} | "
-                f"{dims['ref_depth']:.1f} | {dims['mind_share']:.1f} |\n"
+                f"{dims['brand_prominence']:.1f} | {dims['share_of_voice']:.1f} | {dims['top10_visibility']:.1f} | "
+                f"{dims['competitiveness']:.1f} | {dims['sentiment_analysis']:.1f} |"
             )
-
-        f.write("\n---\n\n")
+            f.write(row_content + "\n")  # 确保每行都有一个换行符
 
         # 统计信息
         f.write("## 📈 统计信息\n\n")
@@ -226,11 +271,12 @@ def write_ranking_report(output_file: str, title: str, scores: dict, task_name: 
         # 说明
         f.write("## 📝 评分说明\n\n")
         f.write("本榜单采用五维度评分体系，每个指标各占20%权重：\n\n")
-        f.write("1. **品牌可见度**: 品牌首次出现的位置越靠前，得分越高\n")
-        f.write("2. **引用率**: 品牌被提及的总次数\n")
-        f.write("3. **AI认知指数**: 品牌在“强推荐”句式中出现的频次\n")
-        f.write("4. **平均引用密度**: 每次回答中该品牌平均被提及的次数，衡量讨论的密度”。\n")
-        f.write("5. **AI认知份额 **: 品牌在所有品牌中的被提及占比\n")
+        f.write("1. **品牌回答显著度**: 品牌在大模型回答中出现的位置，位置越靠前，分数越高\n")
+        f.write("2. **声量占比**: 品牌引用次数与所有引用次数的比率\n")
+        f.write(
+            "3. **前10可见度**: 品牌在大模型回答中在前十名中出现的效果，名次越高分数越高，10分一档，超出前十名不计分\n")
+        f.write("4. **竞争力指数**: 品牌与提及率最高的品牌的提及率只比，反映了品牌在市场上的竞争力”。\n")
+        f.write("5. **情感分析**: 大模型回答中关于品牌正/负面内容分析\n")
         f.write("\n")
 
 
@@ -284,11 +330,11 @@ def main():
 
     # 定义权重（与海外榜单完全一致）
     weights = {
-        "visibility": 20,
-        "mention_rate": 20,
-        "ai_ranking": 20,
-        "ref_depth": 20,
-        "mind_share": 20,
+        "brand_prominence": 20,
+        "share_of_voice": 20,
+        "top10_visibility": 20,
+        "competitiveness": 20,
+        "sentiment_analysis": 20,
     }
 
     # 计算得分
