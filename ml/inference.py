@@ -12,7 +12,6 @@ from peft import PeftModel
 
 from pathlib import Path
 
-
 # ======================================================
 # 1. Config
 # ======================================================
@@ -22,7 +21,6 @@ BASE_MODEL_NAME = "bert-base-uncased"
 BASE_DIR = Path(__file__).resolve().parent
 LORA_ADAPTER_PATH = BASE_DIR / "artifacts" / "lora_adapter_v1"
 BASE_MODEL_NAME = "bert-base-uncased"
-
 
 MAX_LENGTH = 256
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -65,6 +63,19 @@ def load_model():
 MODEL, TOKENIZER = load_model()
 
 
+def load_baseline_model():
+    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_NAME)
+
+    model = AutoModelForSequenceClassification.from_pretrained(
+        BASE_MODEL_NAME,
+        num_labels=len(ID2LABEL)
+    )
+
+    model.to(DEVICE)
+    model.eval()
+    return model, tokenizer
+
+
 # ======================================================
 # 3. Inference Utilities
 # ======================================================
@@ -77,24 +88,13 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
 # 4. Public Prediction API
 # ======================================================
 @torch.no_grad()
-def predict(
-    texts: Union[str, List[str]],
+def _predict_with_model(
+    model,
+    tokenizer,
+    texts: List[str],
     return_probs: bool = False
 ):
-    """
-    Run sentiment inference.
-
-    Args:
-        texts: Single text or list of texts
-        return_probs: Whether to return full probability distribution
-
-    Returns:
-        List of prediction dicts
-    """
-    if isinstance(texts, str):
-        texts = [texts]
-
-    inputs = TOKENIZER(
+    inputs = tokenizer(
         texts,
         truncation=True,
         padding=True,
@@ -102,9 +102,8 @@ def predict(
         return_tensors="pt"
     ).to(DEVICE)
 
-    outputs = MODEL(**inputs)
+    outputs = model(**inputs)
     logits = outputs.logits.cpu().numpy()
-
     probs = _softmax(logits)
     preds = probs.argmax(axis=1)
 
@@ -114,21 +113,44 @@ def predict(
             "label": ID2LABEL[int(idx)],
             "confidence": float(probs[i][idx])
         }
-
         if return_probs:
             result["probs"] = {
                 ID2LABEL[j]: float(probs[i][j])
                 for j in range(len(ID2LABEL))
             }
-
         results.append(result)
 
     return results
 
 
+
 # ======================================================
 # 5. CLI Test (Optional)
 # ======================================================
+
+def compare_with_baseline(texts: List[str]):
+    lora_model, lora_tokenizer = MODEL, TOKENIZER
+    base_model, base_tokenizer = load_baseline_model()
+
+    lora_preds = _predict_with_model(lora_model, lora_tokenizer, texts, return_probs=True)
+    base_preds = _predict_with_model(base_model, base_tokenizer, texts, return_probs=True)
+
+    comparisons = []
+
+    for text, lp, bp in zip(texts, lora_preds, base_preds):
+        comparisons.append({
+            "text": text,
+            "baseline_label": bp["label"],
+            "baseline_conf": bp["confidence"],
+            "lora_label": lp["label"],
+            "lora_conf": lp["confidence"],
+            "confidence_gain": lp["confidence"] - bp["confidence"],
+            "label_changed": bp["label"] != lp["label"]
+        })
+
+    return comparisons
+
+
 if __name__ == "__main__":
     samples = [
         "The food was absolutely terrible and the service was even worse.",
@@ -136,9 +158,13 @@ if __name__ == "__main__":
         "Amazing experience! I would definitely come back again."
     ]
 
-    predictions = predict(samples, return_probs=True)
+    results = compare_with_baseline(samples)
 
-    for text, pred in zip(samples, predictions):
+    for r in results:
         print("=" * 60)
-        print(f"Text: {text}")
-        print(f"Prediction: {pred}")
+        print(f"Text: {r['text']}")
+        print(f"Baseline → {r['baseline_label']} ({r['baseline_conf']:.3f})")
+        print(f"LoRA     → {r['lora_label']} ({r['lora_conf']:.3f})")
+        print(f"Δ confidence: {r['confidence_gain']:+.3f}")
+        print(f"Label changed: {r['label_changed']}")
+
