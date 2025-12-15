@@ -10,6 +10,8 @@ from transformers import (
 )
 from peft import PeftModel
 
+from pathlib import Path
+
 
 # ======================================================
 # 1. Config
@@ -17,10 +19,10 @@ from peft import PeftModel
 BASE_MODEL_NAME = "bert-base-uncased"
 
 # Adapter version can be switched via environment variable
-LORA_ADAPTER_PATH = os.getenv(
-    "LORA_ADAPTER_PATH",
-    "ml/artifacts/lora_adapter_v1"
-)
+BASE_DIR = Path(__file__).resolve().parent
+LORA_ADAPTER_PATH = BASE_DIR / "artifacts" / "lora_adapter_v1"
+BASE_MODEL_NAME = "bert-base-uncased"
+
 
 MAX_LENGTH = 256
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
