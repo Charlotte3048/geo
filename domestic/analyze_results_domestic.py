@@ -1,5 +1,4 @@
 import json
-import os
 import re
 import yaml
 import argparse
@@ -25,7 +24,7 @@ from collections import defaultdict
 
 # 导入BERT情感分析模块
 try:
-    from sentiment_analyzer import get_sentiment_analyzer
+    from domestic.sentiment.sentiment_analyzer import get_sentiment_analyzer
 
     USE_BERT_SENTIMENT = True
     print("✅ BERT情感分析模块已启用")
@@ -123,7 +122,14 @@ def safe_log1p_scaled(x, k=1000, scale=10):
     return math.log1p(x * k) * scale
 
 
-def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, weights: dict) -> dict:
+def calculate_scores(data_list,
+                     brand_dictionary,
+                     whitelist,
+                     weights,
+                     return_question_level: bool = False,
+                     analyzer=None) -> dict:
+    question_level_details = []
+
     """计算所有品牌的得分（集成BERT情感分析）"""
     all_brands_raw_metrics = defaultdict(
         lambda: {"total_mentions": 0, "first_pos_sum": 0, "top10_score_sum": 0, "strong_recommend_count": 0,
@@ -157,14 +163,17 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
     if not all_brands_raw_metrics:
         return {}
 
-    # 初始化BERT情感分析器（如果可用）
-    sentiment_analyzer = None
-    if USE_BERT_SENTIMENT:
+    # 优先使用外部注入的 analyzer（例如 scoring_pipeline 的 singleton）
+    sentiment_analyzer = analyzer
+
+    # 如果外部没传，再按你原来的逻辑初始化（保持兼容）
+    if sentiment_analyzer is None and USE_BERT_SENTIMENT:
         try:
             sentiment_analyzer = get_sentiment_analyzer()
             print("🤖 使用BERT模型进行情感分析...")
         except Exception as e:
             print(f"⚠️  BERT模型加载失败，回退到规则匹配: {e}")
+            sentiment_analyzer = None
 
     # 计算归一化参数
     max_mentions = max((m["total_mentions"] for m in all_brands_raw_metrics.values()), default=1)
@@ -214,12 +223,23 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
             sentiment_analysis = math.sqrt(normalized_strong) * 100
 
         # 加权平均
+        w_brand_prominence = (
+            weights.get("brand_prominence")
+            if "brand_prominence" in weights
+            else weights.get("visibility", 0)
+        )
+
+        w_share_of_voice = weights.get("share_of_voice", 0)
+        w_top10_visibility = weights.get("top10_visibility", 0)
+        w_competitiveness = weights.get("competitiveness", 0)
+        w_sentiment = weights.get("sentiment_analysis", 0)
+
         total_score = (
-                              score_visibility * weights["brand_prominence"] +
-                              share_of_voice * weights["share_of_voice"] +
-                              top10_visibility * weights["top10_visibility"] +
-                              competitiveness * weights["competitiveness"] +
-                              sentiment_analysis * weights["sentiment_analysis"]
+                              score_visibility * w_brand_prominence +
+                              share_of_voice * w_share_of_voice +
+                              top10_visibility * w_top10_visibility +
+                              competitiveness * w_competitiveness +
+                              sentiment_analysis * w_sentiment
                       ) / 100
 
         final_scores[brand] = {
@@ -237,6 +257,8 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
             }
         }
 
+    if return_question_level:
+        return final_scores, question_level_details
     return final_scores
 
 

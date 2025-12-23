@@ -33,7 +33,8 @@ except ImportError as e:
 # 配置
 # ======================================================
 BASE_MODEL_NAME = "bert-base-uncased"
-LORA_ADAPTER_PATH = BASE_DIR / "ml" / "artifacts" / "lora_adapter_v1"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LORA_ADAPTER_PATH = PROJECT_ROOT / "ml" / "artifacts" / "lora_adapter_v1"
 MAX_LENGTH = 256
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -61,8 +62,12 @@ SENTIMENT_SCORES = {
 # ======================================================
 class SentimentAnalyzer:
     _instance = None
-    _model = None
-    _tokenizer = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
     def __new__(cls):
         if cls._instance is None:
@@ -71,36 +76,37 @@ class SentimentAnalyzer:
         return cls._instance
 
     def _load_model(self):
-        """加载BERT模型和LoRA adapter"""
         print(f"🔄 正在加载BERT情感分析模型...")
         print(f"   设备: {DEVICE}")
+        print(f"   Base model: {BASE_MODEL_NAME}")
         print(f"   Adapter路径: {LORA_ADAPTER_PATH}")
 
         try:
-            # 加载tokenizer
+            # 1️⃣ tokenizer 一定来自 base model
             self._tokenizer = AutoTokenizer.from_pretrained(
-                LORA_ADAPTER_PATH,
-                local_files_only=True
+                BASE_MODEL_NAME,
+                local_files_only=False
             )
 
-            # 加载基础模型
+            # 2️⃣ 加载 base model
             base_model = AutoModelForSequenceClassification.from_pretrained(
                 BASE_MODEL_NAME,
                 num_labels=len(ID2LABEL),
-                torch_dtype=torch.float32  # 明确指定数据类型
+                torch_dtype=torch.float32
             )
 
-            # 加载LoRA adapter
+            # 3️⃣ 加载 LoRA adapter（本地路径是完全 OK 的）
             self._model = PeftModel.from_pretrained(
                 base_model,
-                LORA_ADAPTER_PATH,
+                str(LORA_ADAPTER_PATH),
                 torch_dtype=torch.float32
             )
 
             self._model.to(DEVICE)
             self._model.eval()
 
-            print(f"✅ BERT模型加载成功\n")
+            print("✅ BERT模型加载成功\n")
+
         except Exception as e:
             print(f"❌ 模型加载失败: {e}")
             import traceback
