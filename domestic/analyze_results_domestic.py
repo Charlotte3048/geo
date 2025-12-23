@@ -1,14 +1,11 @@
 import json
 import os
 import re
-import math
 import yaml
 import argparse
-from collections import Counter, defaultdict
 import time
+import math
 from collections import defaultdict
-import numpy as np
-
 
 # ==============================================================================
 # 国内榜单分析引擎 (简化版 - 只生成总榜单)
@@ -26,11 +23,22 @@ import numpy as np
 # ==============================================================================
 
 
+# 导入BERT情感分析模块
+try:
+    from sentiment_analyzer import get_sentiment_analyzer
+
+    USE_BERT_SENTIMENT = True
+    print("✅ BERT情感分析模块已启用")
+except ImportError as e:
+    USE_BERT_SENTIMENT = False
+    print(f"⚠️  BERT情感分析模块未找到，将使用规则匹配方式: {e}")
+
+
 def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
     """分析单个回答，提取品牌相关指标"""
     raw_metrics = defaultdict(
         lambda: {"mentioned": 0, "first_pos": float('inf'), "is_strong": 0, "ref_count": 0, "mention_count": 0,
-                 "top10_points": 0})
+                 "top10_points": 0, "sentiment_sentences": []})  # 新增：存储包含品牌的句子
     answer_lower = answer_text.lower()
 
     # --- 1. 检测品牌提及并计算 first_pos ---
@@ -54,8 +62,6 @@ def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
                 })
 
     # --- 2. 计算 Top 10 积分 (前10可见度) ---
-    # 目标：找到每个品牌首次出现的位置，并根据首次出现的位置排名给分
-
     # 找到每个品牌的首次出现位置
     first_mention_positions = {}
     for mention in brand_mentions_with_pos:
@@ -75,9 +81,23 @@ def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
         else:
             break  # 超过 10 个品牌后停止计分
 
-    # --- 3. 检测强推荐 (is_strong) ---
-    sentences = re.split(r'[。\n]', answer_text)
+    # --- 3. 提取包含品牌的句子（用于BERT情感分析）---
+    sentences = re.split(r'[。\n.!?]', answer_text)  # 按句子分割
 
+    for sentence in sentences:
+        sentence_lower = sentence.lower().strip()
+        if not sentence_lower:
+            continue
+
+        for brand, metrics in raw_metrics.items():
+            if not metrics["mentioned"]:
+                continue
+            # 检查句子中是否包含该品牌
+            if brand.lower() in sentence_lower:
+                # 将包含品牌的句子存储起来
+                raw_metrics[brand]["sentiment_sentences"].append(sentence)
+
+    # --- 4. 检测强推荐 (is_strong) - 保留作为备用 ---
     strong_patterns = [
         r"(强烈)?推荐", r"首选", r"最佳", r"值得.*?(尝试|购买|选择)",
         r"性价比.*?(高|很高)", r"(是|属)?(top|best)[^。]*?(品牌|选择|之一)",
@@ -95,19 +115,7 @@ def analyze_single_answer(answer_text: str, references: list, brand_map: dict):
                     if not any(neg in sentence_lower for neg in negation_keywords):
                         raw_metrics[brand]["is_strong"] = 1
 
-    # 检测引用
-    # if references:
-    #     for brand, metrics in raw_metrics.items():
-    #         if metrics["mentioned"]:
-    #             for ref in references:
-    #                 if brand.lower() in ref.lower():
-    #                     raw_metrics[brand]["ref_count"] += 1
-
     return raw_metrics
-
-
-import math
-from collections import defaultdict
 
 
 def safe_log1p_scaled(x, k=1000, scale=10):
@@ -116,10 +124,10 @@ def safe_log1p_scaled(x, k=1000, scale=10):
 
 
 def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, weights: dict) -> dict:
-    """计算所有品牌的得分（保留原结构，仅 mind_share 使用 log 压缩）"""
+    """计算所有品牌的得分（集成BERT情感分析）"""
     all_brands_raw_metrics = defaultdict(
         lambda: {"total_mentions": 0, "first_pos_sum": 0, "top10_score_sum": 0, "strong_recommend_count": 0,
-                 "total_ref_count": 0, "mention_in_answers": 0})
+                 "total_ref_count": 0, "mention_in_answers": 0, "sentiment_sentences": []})  # 新增
     total_brand_mentions_across_all = 0
 
     # 收集所有原始指标
@@ -138,18 +146,28 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
                 if metrics["first_pos"] != float('inf'):
                     brand_global_metrics["first_pos_sum"] += metrics["first_pos"]
                 brand_global_metrics["strong_recommend_count"] += metrics["is_strong"]
-                brand_global_metrics["top10_score_sum"] += metrics["top10_points"]  # 累加 Top 10 积分
+                brand_global_metrics["top10_score_sum"] += metrics["top10_points"]
                 brand_global_metrics["total_ref_count"] += metrics["ref_count"]
                 brand_global_metrics["mention_in_answers"] += 1
                 total_brand_mentions_across_all += metrics["mention_count"]
 
+                # 收集情感分析句子
+                brand_global_metrics["sentiment_sentences"].extend(metrics["sentiment_sentences"])
+
     if not all_brands_raw_metrics:
         return {}
 
+    # 初始化BERT情感分析器（如果可用）
+    sentiment_analyzer = None
+    if USE_BERT_SENTIMENT:
+        try:
+            sentiment_analyzer = get_sentiment_analyzer()
+            print("🤖 使用BERT模型进行情感分析...")
+        except Exception as e:
+            print(f"⚠️  BERT模型加载失败，回退到规则匹配: {e}")
+
     # 计算归一化参数
     max_mentions = max((m["total_mentions"] for m in all_brands_raw_metrics.values()), default=1)
-    # max_density = max((m["total_mentions"] / m["mention_in_answers"]
-    #                    for m in all_brands_raw_metrics.values() if m["mention_in_answers"] > 0), default=1)
     max_strong = max((m["strong_recommend_count"] for m in all_brands_raw_metrics.values()), default=1)
 
     # 计算每个品牌的得分
@@ -175,19 +193,25 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
         normalized_mind_share = metrics["total_mentions"] / total_brand_mentions_across_all
         share_of_voice = safe_log1p_scaled(normalized_mind_share, k=1000, scale=20)
 
-        # 3. 前10可见度 (新逻辑)
-        # 累加 Top 10 积分，然后归一化
+        # 3. 前10可见度
         max_top10_score = max((m["top10_score_sum"] for m in all_brands_raw_metrics.values()), default=1)
-
         normalized_top10 = (metrics["top10_score_sum"] + 1) / (max_top10_score + 1)
-        top10_visibility = math.sqrt(normalized_top10) * 100  # 沿用开方平滑归一化
+        top10_visibility = math.sqrt(normalized_top10) * 100
 
         # 4. 竞争力指数
         competitiveness = (metrics["total_mentions"] / max_mentions) * 100 if max_mentions > 0 else 0
 
-        # 5. 情感分析
-        normalized_strong = (metrics["strong_recommend_count"] + 1) / (max_strong + 1)
-        sentiment_analysis = math.sqrt(normalized_strong) * 100
+        # 5. 情感分析 (BERT模型 or 规则匹配)
+        if sentiment_analyzer and metrics["sentiment_sentences"]:
+            # 使用BERT模型分析（限制最多50个句子以提高性能）
+            sentences_to_analyze = metrics["sentiment_sentences"][:50]
+            results = sentiment_analyzer.predict(sentences_to_analyze)
+            sentiment_scores = [r["score"] for r in results]
+            sentiment_analysis = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 50.0
+        else:
+            # 使用规则匹配方式（原有逻辑）
+            normalized_strong = (metrics["strong_recommend_count"] + 1) / (max_strong + 1)
+            sentiment_analysis = math.sqrt(normalized_strong) * 100
 
         # 加权平均
         total_score = (
@@ -196,7 +220,7 @@ def calculate_scores(data_list: list, brand_dictionary: dict, whitelist: set, we
                               top10_visibility * weights["top10_visibility"] +
                               competitiveness * weights["competitiveness"] +
                               sentiment_analysis * weights["sentiment_analysis"]
-                      ) / 100  # 加常数以避免分数过低
+                      ) / 100
 
         final_scores[brand] = {
             "品牌指数": total_score,
@@ -235,18 +259,6 @@ def write_ranking_report(output_file: str, title: str, scores: dict, task_name: 
         f.write("|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n")
 
         sorted_brands = sorted(scores.items(), key=lambda x: x[1]["品牌指数"], reverse=True)
-
-        # for rank, (brand, data) in enumerate(sorted_brands, 1):
-        #     dims = data["维度得分"]
-        #
-        # f.write(
-        #     f"| {rank} | {brand} | **{data['品牌指数']:.2f}** | "
-        #     f"{data['总提及次数']} | {data['出现次数']} | {data['强推荐次数']} | "
-        #     f"{dims['brand_prominence']:.1f} | {dims['share_of_voice']:.1f} | {dims['top10_visibility']:.1f} | "
-        #     f"{dims['competitiveness']:.1f} | {dims['sentiment_analysis']:.1f} |\n"
-        # )
-        #
-        # f.write("\n---\n\n")
 
         for rank, (brand, data) in enumerate(sorted_brands, 1):
             dims = data["维度得分"]

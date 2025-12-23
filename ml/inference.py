@@ -89,10 +89,10 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
 # ======================================================
 @torch.no_grad()
 def _predict_with_model(
-    model,
-    tokenizer,
-    texts: List[str],
-    return_probs: bool = False
+        model,
+        tokenizer,
+        texts: List[str],
+        return_probs: bool = False
 ):
     inputs = tokenizer(
         texts,
@@ -121,7 +121,6 @@ def _predict_with_model(
         results.append(result)
 
     return results
-
 
 
 # ======================================================
@@ -167,4 +166,3 @@ if __name__ == "__main__":
         print(f"LoRA     → {r['lora_label']} ({r['lora_conf']:.3f})")
         print(f"Δ confidence: {r['confidence_gain']:+.3f}")
         print(f"Label changed: {r['label_changed']}")
-
