@@ -10,10 +10,8 @@ from openai import RateLimitError, APIError
 import requests
 import qianfan
 
-# --- 导入特殊模型 SDK ---
-# 腾讯云 SDK
-from tencentcloud.common import credential
-from tencentcloud.hunyuan.v20230901 import hunyuan_client, models as hunyuan_models
+# python run_analysis_domestic.py --task snack
+# python run_analysis_domestic.py --task city
 
 # 假设您的项目根目录是 GEO
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -178,6 +176,53 @@ def call_spark_api(model_config, question):
         return None
 
 
+def call_spark_api(model_config, question):
+    """
+    调用科大讯飞星火 API (使用封装后的同步客户端)
+    """
+    try:
+        api_key = os.getenv(model_config['api_key_env'])
+        api_secret = os.getenv(model_config['secret_key_env'])
+        app_id = os.getenv(model_config['app_id_env'])
+
+        # ⭐ 关键修改：直接使用配置中的 URL，而不是从环境变量读取
+        spark_url = model_config['base_url']  # 直接使用配置中的 URL
+
+        if not api_key or not api_secret or not app_id or not spark_url:
+            print(f"  -> Error: Key/Secret/AppID/URL for {model_config['name']} not found.")
+            return None
+
+        client = SparkSyncClient()
+        domain = model_config['model']  # 比如 spark-x1.5
+
+        print(f"  -> Calling {model_config['name']} ({domain})...")
+
+        answer = client.chat(
+            appid=app_id,
+            api_key=api_key,
+            api_secret=api_secret,
+            Spark_url=spark_url,
+            domain=domain,
+            question=question['prompt']
+        )
+
+        # 关键：像其他模型一样构造统一的返回结构
+        result = {
+            "category": question['category'],
+            "question_id": question['id'],
+            "model": model_config['name'],
+            "response": {
+                "answer": answer,
+                "references": []
+            }
+        }
+        return result
+
+    except Exception as e:
+        print(f"  -> API Error for {model_config['name']}: {e}")
+        return None
+
+
 def call_model(model_key, model_config, question):
     """
     根据模型 key 分派到不同的 API 调用函数
@@ -198,6 +243,8 @@ def call_model(model_key, model_config, question):
 def main():
     parser = argparse.ArgumentParser(description="Run domestic brand analysis data collection.")
     parser.add_argument('--config', type=str, default='config_domestic.yaml', help='Path to the configuration file.')
+    # --- 新增 --task 参数 ---
+    parser.add_argument('--task', type=str, help='Specify the task/category to run (e.g., snack, phone).')
     args = parser.parse_args()
 
     config_path = os.path.join(BASE_DIR, args.config)
@@ -216,8 +263,18 @@ def main():
     results_dir = os.path.join(BASE_DIR, config['paths']['results_dir'])
     os.makedirs(results_dir, exist_ok=True)
 
-    # 加载问题
-    questions_path = os.path.join(BASE_DIR, config['paths']['questions_file'])
+    # --- 动态加载问题文件 ---
+    if args.task:
+        # 如果指定了 task，则加载 questions_{task}.json
+        questions_file_name = f"question/questions_{args.task}.json"
+        print(f"-> Running task: {args.task}. Loading questions from {questions_file_name}")
+    else:
+        # 否则加载默认的 questions_file
+        questions_file_name = config['paths']['questions_file']
+        print(f"-> Running default task. Loading questions from {questions_file_name}")
+
+    questions_path = os.path.join(BASE_DIR, questions_file_name)
+
     if not os.path.exists(questions_path):
         print(f"Error: Questions file not found at {questions_path}. Please create it.")
         return
@@ -231,16 +288,15 @@ def main():
         model_output_path = os.path.join(results_dir, f"results_{model_key}.json")
         model_results = []
 
-        # --- 关键优化：检查并加载已存在的结果 ---
-        existing_q_ids = set()
+        # --- 关键修改：检查并加载已存在的结果 ---
+        # 仍然加载旧结果，但不会用于跳过
         if os.path.exists(model_output_path):
             try:
                 with open(model_output_path, 'r', encoding='utf-8') as f:
                     model_results = json.load(f)
-                existing_q_ids = {r['question_id'] for r in model_results}
-                print(f"  -> Found {len(model_results)} existing results. Skipping Question IDs: {existing_q_ids}")
+                print(f"  -> Found {len(model_results)} existing results. Will re-run all questions and append.")
             except json.JSONDecodeError:
-                print(f"  -> Warning: Could not read existing results file {model_output_path}. Overwriting.")
+                print(f"  -> Warning: Could not read existing results file {model_output_path}. Starting fresh.")
                 model_results = []
         # ----------------------------------------
 
@@ -249,10 +305,7 @@ def main():
         for question in questions:
             q_id = question['id']
 
-            if q_id in existing_q_ids:
-                print(f"  -> Question ID: {q_id} ({question['category']}) already exists. Skipping.")
-                continue
-
+            # 移除跳过逻辑，强制运行
             print(f"  -> Question ID: {q_id} ({question['category']})")
 
             result = call_model(model_key, model_config, question)
@@ -260,8 +313,6 @@ def main():
             if result:
                 model_results.append(result)
                 newly_collected_results.append(result)
-
-            # time.sleep(0.5)  # 避免API调用过于频繁
 
         # 如果有新采集的结果，则保存
         if newly_collected_results:
@@ -298,12 +349,12 @@ def main():
             file_suffix = "beauty"
         elif category == "零食饮料":
             file_suffix = "snack"
-        elif category == "热门旅游城市":
+        elif category == "中国旅游城市":
             file_suffix = "city"
         else:
             file_suffix = "other"
 
-        merged_output_path = os.path.join(BASE_DIR, f"results_{file_suffix}_merged.json")
+        merged_output_path = os.path.join(BASE_DIR, f"merged_results/results_{file_suffix}_merged.json")
 
         with open(merged_output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=4)

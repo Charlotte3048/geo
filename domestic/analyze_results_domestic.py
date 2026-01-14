@@ -7,16 +7,17 @@ import math
 from collections import defaultdict
 
 # ==============================================================================
-# 国内榜单分析引擎 (简化版 - 只生成总榜单)
+# 国内榜单分析引擎 (只生成总榜单)
 # 描述: 专门用于国内榜单分析，不分子品类，只生成一个总榜单
-# 用法: python analyze_results_domestic.py --task scenic --results results_scenic_merged.json --brands brand_dictionary_scenic.yaml
-# python analyze_results_domestic.py --task nev --results results_nev_merged.json --brands brand_dictionary_nev.yaml
-# python analyze_results_domestic.py --task phone --results results_phone_merged.json --brands brand_dictionary_phone.yaml
-# python analyze_results_domestic.py --task food --results results_food_merged.json --brands brand_dictionary_food.yaml
+# 用法:
+# python analyze_results_domestic.py --task scenic --results merged_results/results_scenic_merged.json --brands config/brand_dictionary_scenic.yaml
+# python analyze_results_domestic.py --task nev --results merged_results/results_nev_merged.json --brands config/brand_dictionary_nev.yaml
+# python analyze_results_domestic.py --task phone --results merged_results/results_phone_merged.json --brands config/brand_dictionary_phone.yaml
+# python analyze_results_domestic.py --task food --results merged_results/results_food_merged.json --brands config/brand_dictionary_food.yaml
 # python analyze_results_domestic.py --task snack --results merged_results/results_snack_merged.json --brands config/brand_dictionary_snack.yaml
-# python analyze_results_domestic.py --task city --results results_city_merged.json --brands brand_dictionary_city.yaml
-# python analyze_results_domestic.py --task luxury --results results_luxury_merged.json --brands brand_dictionary_luxury.yaml
-# python analyze_results_domestic.py --task beauty --results results_beauty_merged.json --brands brand_dictionary_beauty.yaml
+# python analyze_results_domestic.py --task city --results merged_results/results_city_merged.json --brands  config/brand_dictionary_city.yaml
+# python analyze_results_domestic.py --task luxury --results merged_results/results_luxury_merged.json --brands config/brand_dictionary_luxury.yaml
+# python analyze_results_domestic.py --task beauty --results merged_results/results_beauty_merged.json --brands config/brand_dictionary_beauty.yaml
 # python analyze_results_domestic.py --task travel --results results_merged_ts.json --brands config/brand_dictionary_ts_travel.yaml
 # python analyze_results_domestic.py --task tc_city --results /Users/charlotte/PycharmProjects/GEO/oversea/results_merged_tc.json --brands brand_dictionary_tc.yaml
 # ==============================================================================
@@ -24,7 +25,7 @@ from collections import defaultdict
 
 # 导入BERT情感分析模块
 try:
-    from domestic.sentiment.sentiment_analyzer import get_sentiment_analyzer
+    from sentiment.sentiment_analyzer import get_sentiment_analyzer
 
     USE_BERT_SENTIMENT = True
     print("✅ BERT情感分析模块已启用")
@@ -199,8 +200,9 @@ def calculate_scores(data_list,
             score_visibility = 0
 
         # 2. 声量占比 share of voice
-        normalized_mind_share = metrics["total_mentions"] / total_brand_mentions_across_all
-        share_of_voice = safe_log1p_scaled(normalized_mind_share, k=1000, scale=20)
+        share_of_voice_ratio = metrics["total_mentions"] / total_brand_mentions_across_all
+        # 对数归一化，避免少数超高提及品牌分数过高 (与报告公式一致)
+        share_of_voice = (math.log(share_of_voice_ratio * 1000 + 1) / math.log(1001)) * 100
 
         # 3. 前10可见度
         max_top10_score = max((m["top10_score_sum"] for m in all_brands_raw_metrics.values()), default=1)
@@ -324,7 +326,7 @@ def main():
 
     # 设置输出文件名
     if args.output is None:
-        args.output = f"ranking_report_{args.task}.md"
+        args.output = f"report/ranking_report_{args.task}.md"
 
     print(f"\n{'=' * 60}")
     print(f"国内榜单分析引擎")
