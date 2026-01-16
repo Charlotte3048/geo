@@ -17,8 +17,11 @@ from dotenv import load_dotenv
 # python run_analysis_oversea.py --task sh --model perplexity # 只运行智能硬件品类的 perplexity 模型
 # ==============================================================================
 
-# 假设您的项目根目录是 oversea
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 加载 .env 文件（从根目录加载）
+root_dir = os.path.dirname(BASE_DIR)  # 获取父目录（根目录）
+load_dotenv(os.path.join(root_dir, '.env'))
+
 
 
 def load_config(config_path):
