@@ -1,0 +1,41 @@
+# ==============================================================================
+# 海外数据采集引擎配置文件 (v2.0)
+# ==============================================================================
+# 使用方法:
+# python run_analysis_oversea.py --task ha                    # 运行家用电器品类的所有模型
+# python run_analysis_oversea.py --task ha --model gemini     # 只运行家用电器品类的 gemini 模型
+# python run_analysis_oversea.py --task sh                    # 运行智能硬件品类的所有模型
+# python run_analysis_oversea.py --task sh --model perplexity # 只运行智能硬件品类的 perplexity 模型
+# ==============================================================================
+
+# --- 模型配置 (通过 OpenRouter 统一调用) ---
+# GPT / Gemini: 自动添加 :online 后缀启用联网搜索
+# Perplexity: 原生联网搜索，不需要后缀
+models:
+  gemini: "google/gemini-2.5-flash"
+  gpt: "openai/gpt-4o"
+  perplexity: "perplexity/sonar"
+
+# --- 任务/品类配置 ---
+tasks:
+  # 家用电器 (Home Appliances)
+  ha:
+    name: "家用电器"
+    category_prefix: "家用电器"
+    questions_file: "question/questions_ha.json"
+
+  # 智能硬件 (Smart Hardware)
+  sh:
+    name: "智能硬件"
+    category_prefix: "智能硬件"
+    questions_file: "question/questions_sh.json"
+
+# --- 全局设置 ---
+global_settings:
+  # 重试设置
+  max_retries: 3
+  retry_delay: 5
+
+  # 输出目录
+  results_dir: "results"
+  references_dir: "references"
