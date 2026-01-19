@@ -1,6 +1,7 @@
 import os
 import json
 import yaml
+import time
 import argparse
 from dotenv import load_dotenv
 from collections import defaultdict
@@ -588,9 +589,16 @@ def main():
 
     config = load_config(config_path)
 
+    # 获取当前日期
+    current_date = time.strftime("%Y%m%d")
+
     # 确保结果目录存在
     results_dir = os.path.join(BASE_DIR, config['paths']['results_dir'])
     os.makedirs(results_dir, exist_ok=True)
+
+    # 确保合并结果目录存在
+    merged_results_dir = os.path.join(BASE_DIR, "merged_results")
+    os.makedirs(merged_results_dir, exist_ok=True)
 
     # 动态加载问题文件
     if args.task:
@@ -676,7 +684,7 @@ def main():
         else:
             file_suffix = "other"
 
-        merged_output_path = os.path.join(BASE_DIR, f"merged_results/results_{file_suffix}_merged.json")
+        merged_output_path = os.path.join(merged_results_dir, f"results_{file_suffix}_merged_{current_date}.json")
 
         with open(merged_output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=4)
