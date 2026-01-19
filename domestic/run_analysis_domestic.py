@@ -36,7 +36,8 @@ def load_questions(questions_path):
 def call_dashscope_api(model_config, question):
     """
     使用 DashScope 原生 SDK 调用模型（支持联网搜索）
-    适用于：通义千问、DeepSeek、Kimi、智谱GLM（通过阿里云百炼）
+    适用于：通义千问、DeepSeek、Kimi（通过阿里云百炼）
+    注意：智谱 GLM 使用专用的 call_zhipu_api 函数
     """
     api_key = os.getenv(model_config['api_key_env'])
 
@@ -474,7 +475,69 @@ def call_spark_api(model_config, question):
 
 
 # ============================================================
-# 7. 模型调用分派器
+# 7. 智谱 GLM 专用调用（使用 OpenAI 兼容接口 + 流式调用）
+# ============================================================
+def call_zhipu_api(model_config, question):
+    """
+    调用智谱 GLM API（通过阿里云百炼 OpenAI 兼容接口）
+    智谱模型需要强制流式调用
+    """
+    api_key = os.getenv(model_config['api_key_env'])
+
+    if not api_key:
+        print(f"  -> Error: API Key for {model_config['name']} not found. Skipping.")
+        return None
+
+    # 使用阿里云百炼的 OpenAI 兼容接口
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+    )
+
+    model_name = model_config['model']
+
+    messages = [
+        {"role": "system", "content": "你是一个专业的市场分析师，请根据用户的问题提供详细、客观的分析和回答。"},
+        {"role": "user", "content": question['prompt']}
+    ]
+
+    try:
+        print(f"  -> Calling {model_config['name']} ({model_name}) [模式: 流式]...")
+
+        # 智谱模型强制使用流式调用
+        response_stream = client.chat.completions.create(
+            model=model_name,
+            messages=messages,
+            temperature=0.7,
+            max_tokens=2048,
+            stream=True
+        )
+
+        # 聚合流式结果
+        answer_parts = []
+        for chunk in response_stream:
+            if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                answer_parts.append(chunk.choices[0].delta.content)
+        answer = "".join(answer_parts)
+
+        result = {
+            "category": question['category'],
+            "question_id": question['id'],
+            "model": model_config['name'],
+            "response": {
+                "answer": answer,
+                "references": []
+            }
+        }
+        return result
+
+    except Exception as e:
+        print(f"  -> Error for {model_config['name']}: {e}")
+        return None
+
+
+# ============================================================
+# 8. 模型调用分派器
 # ============================================================
 def call_model(model_key, model_config, question):
     """
@@ -483,7 +546,11 @@ def call_model(model_key, model_config, question):
     try:
         api_type = model_config.get('api_type', 'openai')
 
-        if api_type == 'dashscope':
+        # 智谱模型使用专用调用函数（需要流式调用）
+        if api_type == 'zhipu' or '智谱' in model_config.get('name', '') or 'glm' in model_config.get('model',
+                                                                                                      '').lower():
+            return call_zhipu_api(model_config, question)
+        elif api_type == 'dashscope':
             return call_dashscope_api(model_config, question)
         elif api_type == 'doubao':
             return call_doubao_api(model_config, question)
