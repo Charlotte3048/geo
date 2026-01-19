@@ -6,18 +6,24 @@ import argparse
 from collections import Counter
 import time
 import glob
+from dotenv import load_dotenv
 
 # ==============================================================================
 # 品牌探索引擎 : 从 AI 回答中提取品牌名称，生成配置文件模板
 # ==============================================================================
 # 示例用法:
-# python explore_brands.py --task ha --category_prefix "家用电器"
-# python explore_brands.py --task sh --category_prefix "智能硬件"
-# python explore_brands.py --task ha --category_prefix "家用电器" --results_file results/results_merged_ha_20260114.json
+# 请确认在oversea目录下运行，若不在oversea目录下，请先在控制台中运行如下命令切换目录：
+# cd oversea
+# python explore_brand_oversea.py --task ha --category_prefix "家用电器"
+# python explore_brand_oversea.py --task sh --category_prefix "智能硬件"
+# python explore_brand_oversea.py --task ha --category_prefix "家用电器" --results_file results/results_merged_ha_20260114.json
 # ==============================================================================
 
 # 假设您的项目根目录是 oversea
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 加载 .env 文件（从根目录加载）
+root_dir = os.path.dirname(BASE_DIR)  # 获取父目录（根目录）
+load_dotenv(os.path.join(root_dir, '.env'))
 
 # 默认模型
 DEFAULT_MODEL = "google/gemini-2.5-flash"
