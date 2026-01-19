@@ -654,7 +654,8 @@ def main():
         else:
             print(f"--- No new results collected for {model_config['name']}. ---")
 
-        all_results.extend(model_results)
+        # 只将本次采集的结果加入 all_results（不包含历史数据）
+        all_results.extend(newly_collected_results)
 
     # 按品类分开保存合并结果
     results_by_category = defaultdict(list)
