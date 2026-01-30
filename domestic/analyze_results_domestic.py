@@ -320,7 +320,14 @@ def main():
 
     # 设置输出文件名
     if args.output is None:
-        args.output = f"report/ranking_report_{args.task}.md"
+        # 尝试从结果文件名中提取周编号（格式：YYYY-W##）
+        import re
+        week_match = re.search(r'(\d{4}-W\d{2})', args.results)
+        if week_match:
+            week_number = week_match.group(1)
+            args.output = f"report/ranking_report_{args.task}_{week_number}.md"
+        else:
+            args.output = f"report/ranking_report_{args.task}.md"
 
     print(f"\n{'=' * 60}")
     print(f"国内榜单分析引擎")
