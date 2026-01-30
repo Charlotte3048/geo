@@ -3,36 +3,36 @@
 # base_url 对应模型的 API 地址
 
 models:
-#  doubao:
-#    name: "豆包"
-#    model: "doubao-seed-1-6-flash-250828"
-#    api_key_env: "DOUBAO_API_KEY"
-#    base_url: "https://ark.cn-beijing.volces.com/api/v3" # 修正：OpenAI 兼容接口通常只需要到 /v3
-#    api_type: "openai"
-#
-#  qwen:
-#    name: "通义千问"
-#    model: "qwen-plus" # 使用您提供的模型名称
-#    api_key_env: "QWEN_API_KEY"
-#    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
-#    api_type: "dashscope"
-#    enable_search: true
-#
-#  deepseek:
-#    name: "DeepSeek"
-#    model: "deepseek-v3.2" # 使用您提供的模型名称
-#    api_key_env: "DEEPSEEK_API_KEY"
-#    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
-#    api_type: "dashscope"
-#    enable_search: true
-#
-#  kimi:
-#    name: "Kimi"
-#    api_key_env: "KIMI_API_KEY"
-#    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-#    model: "Moonshot-Kimi-K2-Instruct"
-#    api_type: "dashscope"
-#    enable_search: true
+  doubao:
+    name: "豆包"
+    model: "doubao-seed-1-6-flash-250828"
+    api_key_env: "DOUBAO_API_KEY"
+    base_url: "https://ark.cn-beijing.volces.com/api/v3" # 修正：OpenAI 兼容接口通常只需要到 /v3
+    api_type: "openai"
+
+  qwen:
+    name: "通义千问"
+    model: "qwen-plus" # 使用您提供的模型名称
+    api_key_env: "QWEN_API_KEY"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
+    api_type: "dashscope"
+    enable_search: true
+
+  deepseek:
+    name: "DeepSeek"
+    model: "deepseek-v3.2" # 使用您提供的模型名称
+    api_key_env: "DEEPSEEK_API_KEY"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云兼容模式 URL
+    api_type: "dashscope"
+    enable_search: true
+
+  kimi:
+    name: "Kimi"
+    api_key_env: "KIMI_API_KEY"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: "Moonshot-Kimi-K2-Instruct"
+    api_type: "dashscope"
+    enable_search: true
 
   zhipu:
     name: "智谱 GLM"
@@ -59,14 +59,14 @@ models:
     #    base_url: "https://qianfan.baidubce.com/v2"
 
     # --- 需要单独适配的模型 ---
-#  hunyuan:
-#    name: "腾讯混元"
-#    model: "hunyuan-lite"
-#    api_key_env: "HUNYUAN_API_KEY"
-#    secret_key_env: "HUNYUAN_SECRET_KEY" # 新增 Secret Key 字段
-#    base_url: "https://api.hunyuan.cloud.tencent.com/v1"
-#    api_type: "openai"
-#
+  hunyuan:
+    name: "腾讯混元"
+    model: "hunyuan-lite"
+    api_key_env: "HUNYUAN_API_KEY"
+    secret_key_env: "HUNYUAN_SECRET_KEY" # 新增 Secret Key 字段
+    base_url: "https://api.hunyuan.cloud.tencent.com/v1"
+    api_type: "openai"
+
 #  spark:
 #    name: "科大讯飞星火"
 #    model: "lite"

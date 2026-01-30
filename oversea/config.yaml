@@ -9,7 +9,7 @@ global_settings:
 
 # --- 模型定义 ---
 models:
-  gpt: "openai/gpt-4o"
+  gpt: "openai/gpt-5-mini"
   gemini: "google/gemini-2.5-flash"
   perplexity: "perplexity/sonar"
 
@@ -19,9 +19,9 @@ brand_definitions:
   home_appliances: &ha_brands
     dictionary:
       # --- 这里将填充家用电器的品牌词典 ---
-      Midea: [midea, 美的]
-      Haier: [haier, 海尔]
-      Hisense: [hisense, 海信]
+      Midea: [ midea, 美的 ]
+      Haier: [ haier, 海尔 ]
+      Hisense: [ hisense, 海信 ]
       # ... etc ...
     whitelist:
       # --- 这里将填充家用电器的白名单 ---
@@ -32,11 +32,12 @@ brand_definitions:
 
   # 定义一个名为 sh_brands 的锚点
   smart_hardware: &sh_brands
+
     dictionary:
       # --- 这里将填充智能硬件的品牌词典 ---
-      Huawei: [huawei, 华为]
-      Xiaomi: [xiaomi, 小米]
-      DJI: [dji, 大疆]
+      Huawei: [ huawei, 华为 ]
+      Xiaomi: [ xiaomi, 小米 ]
+      DJI: [ dji, 大疆 ]
       # ... etc ...
     whitelist:
       # --- 这里将填充智能硬件的白名单 ---
@@ -44,6 +45,97 @@ brand_definitions:
       - Xiaomi
       - DJI
       # ... etc ...
+
+    # 定义一个名为 ts_brands 的锚点（中国旅游景区）
+  tourism_scenic_spots: &ts_brands
+    dictionary:
+    # 中国旅游景区不涉及明确品牌词典，此处留空以备未来扩展
+    whitelist:
+    # 同上，暂时为空，可记录特别豁免的景区专有名词
+
+  tourism_city: &tc_brands
+    dictionary:
+
+    whitelist:
+
+  # 定义一个名为 ha_en_brands 的锚点（家用电器英文版）
+  home_appliances_en: &ha_en_brands
+    dictionary:
+      # --- 家用电器英文品牌词典 ---
+      Midea: [ midea, MIDEA ]
+      Haier: [ haier, HAIER ]
+      Hisense: [ hisense, HISENSE ]
+      TCL: [ tcl, TCL ]
+      Gree: [ gree, GREE ]
+      Changhong: [ changhong, CHANGHONG ]
+      Skyworth: [ skyworth, SKYWORTH ]
+      Konka: [ konka, KONKA ]
+      # ... 可继续添加 ...
+    whitelist:
+      # --- 家用电器英文白名单 ---
+      - Midea
+      - Haier
+      - Hisense
+      - TCL
+      - Gree
+      - Changhong
+      - Skyworth
+      - Konka
+      # ... 可继续添加 ...
+
+  # 定义一个名为 sh_en_brands 的锚点（智能硬件英文版）
+  smart_hardware_en: &sh_en_brands
+    dictionary:
+      # --- 智能硬件英文品牌词典 ---
+      Huawei: [ huawei, HUAWEI ]
+      Xiaomi: [ xiaomi, XIAOMI ]
+      DJI: [ dji, DJI ]
+      Anker: [ anker, ANKER ]
+      Roborock: [ roborock, ROBOROCK ]
+      Ecovacs: [ ecovacs, ECOVACS ]
+      Dreame: [ dreame, DREAME ]
+      Autel: [ autel, AUTEL ]
+      EcoFlow: [ ecoflow, ECOFLOW ]
+      Bluetti: [ bluetti, BLUETTI ]
+      Creality: [ creality, CREALITY ]
+      Elegoo: [ elegoo, ELEGOO ]
+      # ... 可继续添加 ...
+    whitelist:
+      # --- 智能硬件英文白名单 ---
+      - Huawei
+      - Xiaomi
+      - DJI
+      - Anker
+      - Roborock
+      - Ecovacs
+      - Dreame
+      - Autel
+      - EcoFlow
+      - Bluetti
+      - Creality
+      - Elegoo
+      # ... 可继续添加 ...
+
+  # 定义一个名为 baijiu_en_brands 的锚点（白酒英文版）
+  baijiu_en: &baijiu_en_brands
+    dictionary:
+      # --- 白酒英文品牌词典（如需要可添加）---
+      Moutai: [ moutai, MOUTAI, Maotai, MAOTAI ]
+      Wuliangye: [ wuliangye, WULIANGYE ]
+      Luzhou Laojiao: [ luzhou laojiao, LUZHOU LAOJIAO ]
+      Yanghe: [ yanghe, YANGHE ]
+      Fenjiu: [ fenjiu, FENJIU ]
+      # ... 可继续添加 ...
+    whitelist:
+      # --- 白酒英文白名单 ---
+      - Moutai
+      - Wuliangye
+      - Luzhou Laojiao
+      - Yanghe
+      - Fenjiu
+      # ... 可继续添加 ...
+
+
 
 # --- 任务定义 (核心) ---
 tasks:
@@ -78,3 +170,85 @@ tasks:
     model_key: perplexity
     category_prefix: "智能硬件-"
     brands: *sh_brands # 引用
+
+  # --- 任务组: 中国旅游景区 (Tourism Scenic Spots) ---
+  ts_gpt:
+    model_key: gpt
+    category_prefix: "中国旅游景区"
+    brands: *ts_brands # 引用上面定义的 ts_brands
+
+  ts_gemini:
+    model_key: gemini
+    category_prefix: "中国旅游景区"
+    brands: *ts_brands # 引用
+
+  ts_perplexity:
+    model_key: perplexity
+    category_prefix: "中国旅游景区"
+    brands: *ts_brands # 引用
+
+  tc_gpt:
+    model_key: gpt
+    category_prefix: "热门旅游城市"
+    brands: *tc_brands # 引用上面定义的 ts_brands
+
+  tc_gemini:
+    model_key: gemini
+    category_prefix: "热门旅游城市"
+    brands: *tc_brands # 引用上面定义的 ts_brands
+
+  tc_perplexity:
+    model_key: perplexity
+    category_prefix: "热门旅游城市"
+    brands: *tc_brands # 引用上面定义的 ts_brands
+
+
+  # --- 任务组: 家用电器英文版 (Home Appliances - English) ---
+  ha_en_gpt:
+    model_key: gpt
+    category_prefix: "Home Appliances"
+    brands: *ha_en_brands # 引用上面定义的 ha_en_brands
+
+  ha_en_gemini:
+    model_key: gemini
+    category_prefix: "Home Appliances"
+    brands: *ha_en_brands # 引用
+
+  ha_en_perplexity:
+    model_key: perplexity
+    category_prefix: "Home Appliances"
+    brands: *ha_en_brands # 引用
+
+  # --- 任务组: 智能硬件英文版 (Smart Hardware - English) ---
+  sh_en_gpt:
+    model_key: gpt
+    category_prefix: "Smart Hardware"
+    brands: *sh_en_brands # 引用上面定义的 sh_en_brands
+
+  sh_en_gemini:
+    model_key: gemini
+    category_prefix: "Smart Hardware"
+    brands: *sh_en_brands # 引用
+
+  sh_en_perplexity:
+    model_key: perplexity
+    category_prefix: "Smart Hardware"
+    brands: *sh_en_brands # 引用
+
+  # --- 任务组: 白酒英文版 (Baijiu - English) ---
+  baijiu_en_gpt:
+    model_key: gpt
+    category_prefix: "Baijiu"
+    brands: *baijiu_en_brands # 引用上面定义的 baijiu_en_brands
+
+  baijiu_en_gemini:
+    model_key: gemini
+    category_prefix: "Baijiu"
+    brands: *baijiu_en_brands # 引用
+
+  baijiu_en_perplexity:
+    model_key: perplexity
+    category_prefix: "Baijiu"
+    brands: *baijiu_en_brands # 引用
+
+
