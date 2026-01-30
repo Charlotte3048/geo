@@ -7,19 +7,13 @@ import math
 from collections import defaultdict
 
 # ==============================================================================
-# 国内榜单分析引擎 (只生成总榜单)
-# 描述: 专门用于国内榜单分析，不分子品类，只生成一个总榜单
+# 国内榜单分析引擎--专门用于国内榜单分析，不分子品类，只生成一个总榜单，结果保存在report目录下
 # 用法:
-# python analyze_results_domestic.py --task scenic --results merged_results/results_scenic_merged.json --brands config/brand_dictionary_scenic.yaml
-# python analyze_results_domestic.py --task nev --results merged_results/results_nev_merged.json --brands config/brand_dictionary_nev.yaml
-# python analyze_results_domestic.py --task phone --results merged_results/results_phone_merged.json --brands config/brand_dictionary_phone.yaml
-# python analyze_results_domestic.py --task food --results merged_results/results_food_merged.json --brands config/brand_dictionary_food.yaml
-# python analyze_results_domestic.py --task snack --results merged_results/results_snack_merged.json --brands config/brand_dictionary_snack.yaml
-# python analyze_results_domestic.py --task city --results merged_results/results_city_merged.json --brands  config/brand_dictionary_city.yaml
-# python analyze_results_domestic.py --task luxury --results merged_results/results_luxury_merged.json --brands config/brand_dictionary_luxury.yaml
-# python analyze_results_domestic.py --task beauty --results merged_results/results_beauty_merged.json --brands config/brand_dictionary_beauty.yaml
-# python analyze_results_domestic.py --task travel --results results_merged_ts.json --brands config/brand_dictionary_ts_travel.yaml
-# python analyze_results_domestic.py --task tc_city --results /Users/charlotte/PycharmProjects/GEO/oversea/results_merged_tc.json --brands brand_dictionary_tc.yaml
+# 参数说明：根据任务名称（--task）、结果文件路径（--results）和品牌词典文件路径（--brands）来生成对应的排名报告。
+# 在控制台输入以下命令，可根据具体任务来更换参数：
+# python analyze_results_domestic.py --task snack --results weekly_results/results_snack_weekly_2026-W04.json --brands config/brand_dictionary_snack.yaml
+# python analyze_results_domestic.py --task luxury --results weekly_results/results_luxury_weekly_2026-W04.json --brands config/brand_dictionary_luxury.yaml
+#
 # ==============================================================================
 
 

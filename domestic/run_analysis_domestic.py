@@ -12,8 +12,15 @@ import dashscope
 from dashscope import Generation
 from http import HTTPStatus
 
+# ==============================================================================
+# 国内榜单数据采集引擎--生成文件保存在merged_results目录下，按品类与日期戳划分
+# 使用示例：确保在domestic目录下运行，否则请调整路径，在控制台输入cd domestic
+# 运行全品类数据采集：
+# python run_analysis_domestic.py（最高效，但需要把需要跑的所有品类的问题放进question_all.json文件中）
+# 运行特定品类数据采集，例如零食饮料（snack）或旅游城市（city）：
 # python run_analysis_domestic.py --task snack
 # python run_analysis_domestic.py --task city
+# ==============================================================================
 
 # 假设您的项目根目录是 GEO
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
